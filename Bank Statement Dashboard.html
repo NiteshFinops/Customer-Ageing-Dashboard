@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bank Statement Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23FF6200'/><text x='3' y='26' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='22' fill='white'>ix</text></svg>"/>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --primary: #1d4ed8;
+      --primary-light: #eff6ff;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --credit: #059669;
+      --debit: #dc2626;
+      --gray-50: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-400: #94a3b8;
+      --gray-600: #475569;
+      --gray-700: #334155;
+      --gray-800: #1e293b;
+      --white: #ffffff;
+      --radius: 14px;
+      --shadow: 0 2px 12px rgba(29,78,216,0.08), 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 8px 32px rgba(29,78,216,0.14), 0 2px 8px rgba(0,0,0,0.07);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      color: var(--gray-800);
+      background: #f0f4ff;
+      background-image:
+        radial-gradient(ellipse 70% 60% at 10% 10%, rgba(29,78,216,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 5%,  rgba(56,189,248,0.15) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 55% at 85% 90%, rgba(139,92,246,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 50% at 10% 85%, rgba(5,150,105,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(248,250,252,0.9) 0%, transparent 70%);
+      background-attachment: fixed;
+    }
+
+.topbar {
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(29,78,216,0.1);
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { display: flex; align-items: center; }
+    .ixigo-logo {
+      height: 32px; width: auto;
+    }
+    .topbar h1 { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+    .upload-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--primary); color: white;
+      border: none; border-radius: 8px;
+      padding: 8px 16px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .upload-btn:hover { background: #1e40af; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+    .main { padding: 28px 32px; max-width: 1600px; margin: 0 auto; }
+
+    /* ── Upload Zone ── */
+    #upload-zone {
+      border: 2.5px dashed #93c5fd;
+      border-radius: var(--radius);
+      background: rgba(239,246,255,0.7);
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      margin-bottom: 28px;
+    }
+    #upload-zone.dragover { border-color: var(--primary); background: rgba(219,234,254,0.8); transform: scale(1.01); }
+    .upload-icon { font-size: 48px; margin-bottom: 12px; }
+    .upload-title { font-size: 18px; font-weight: 700; color: var(--gray-800); margin-bottom: 6px; }
+    .upload-sub { font-size: 13px; color: var(--gray-600); }
+    .upload-hint { font-size: 12px; color: var(--gray-400); margin-top: 8px; }
+    #file-input { display: none; }
+
+
+
+    /* ── Table Section ── */
+    #table-section { display: none; }
+    .table-card {
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.7);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .table-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .table-title { font-size: 14px; font-weight: 700; color: var(--gray-700); }
+    .table-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .search-input {
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px;
+      color: var(--gray-700);
+      width: 220px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--primary); }
+
+    .filter-select {
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--gray-700);
+      outline: none;
+      cursor: pointer;
+      background: white;
+    }
+    .filter-active {
+      border-color: #FF6200 !important;
+      background: #fff7f0 !important;
+      color: #FF6200 !important;
+      font-weight: 600;
+    }
+    .download-btn {
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 12px;
+      color: var(--primary);
+      background: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.15s, color 0.15s;
+    }
+    .download-btn:hover { background: var(--primary); color: white; }
+
+    .table-wrap { overflow-x: auto; overflow-y: auto; max-height: 520px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th {
+      background: var(--gray-50);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--gray-500, #64748b);
+      border-bottom: 1px solid var(--gray-200);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    tbody tr { border-bottom: 1px solid var(--gray-100); transition: background 0.15s; }
+    tbody tr:hover { background: rgba(239,246,255,0.6); }
+    tbody td { padding: 9px 14px; color: var(--gray-700); vertical-align: middle; }
+    .td-date { white-space: nowrap; font-size: 11px; }
+    .td-desc { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .td-desc:hover { white-space: normal; overflow: visible; }
+    .td-amount { text-align: right; font-weight: 700; white-space: nowrap; }
+    .td-amount.credit { color: var(--credit); }
+    .td-amount.debit  { color: var(--debit); }
+    .td-balance { text-align: right; white-space: nowrap; font-size: 11px; color: var(--gray-600); }
+    .td-type { white-space: nowrap; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 20px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .badge-rtgs   { background: #dbeafe; color: #1d4ed8; }
+    .badge-neft   { background: #d1fae5; color: #065f46; }
+    .badge-imps   { background: #fef3c7; color: #92400e; }
+    .badge-upi    { background: #ede9fe; color: #5b21b6; }
+    .badge-other  { background: var(--gray-100); color: var(--gray-600); }
+
+    .pagination {
+      padding: 12px 20px;
+      border-top: 1px solid var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .pagination-info { font-size: 12px; color: var(--gray-600); }
+    .pagination-btns { display: flex; gap: 4px; }
+    .page-btn {
+      border: 1px solid var(--gray-200);
+      background: white;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--gray-700);
+      transition: all 0.15s;
+    }
+    .page-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+    .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .rows-select {
+      border: 1px solid var(--gray-200); border-radius: 6px;
+      padding: 5px 8px; font-size: 12px; cursor: pointer; background: white;
+    }
+
+    /* ── Account Tabs (for multiple files) ── */
+    #account-tabs { display: none; margin-bottom: 16px; }
+    .kpi-card {
+      background: rgba(255,255,255,0.85); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.7); border-radius: var(--radius);
+      padding: 16px 18px; box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s; position: relative; overflow: hidden;
+    }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .kpi-card.active-card { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(29,78,216,0.15), var(--shadow-md); }
+    .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .kpi-card.c0::before { background: linear-gradient(90deg,#1d4ed8,#3b82f6); }
+    .kpi-card.c1::before { background: linear-gradient(90deg,#059669,#34d399); }
+    .kpi-card.c2::before { background: linear-gradient(90deg,#7c3aed,#a78bfa); }
+    .kpi-card.c3::before { background: linear-gradient(90deg,#d97706,#fbbf24); }
+    .kpi-card.c4::before { background: linear-gradient(90deg,#dc2626,#f87171); }
+    .kpi-card.c5::before { background: linear-gradient(90deg,#0891b2,#67e8f9); }
+    .kpi-acno  { font-size:13px; font-weight:800; color:var(--gray-800); margin-bottom:2px; }
+    .kpi-ifsc  { font-size:10px; color:var(--gray-400); margin-bottom:10px; }
+    .kpi-row   { display:flex; justify-content:space-between; margin-top:6px; }
+    .kpi-lbl   { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-400); }
+    .kpi-val   { font-size:12px; font-weight:700; color:var(--gray-800); }
+    .kpi-val.cr { color:#059669; } .kpi-val.dr { color:#dc2626; }
+    .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 7px 16px; border-radius: 8px; border: 1px solid var(--gray-200);
+      background: white; font-size: 12px; font-weight: 600; color: var(--gray-600);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .tab-btn:hover:not(.active) { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-icon">
+      <svg class="ixigo-logo" viewBox="0 0 90 34" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="27" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="28" letter-spacing="-1" fill="#FF6200">ixigo</text>
+      </svg>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <h1 style="margin:0;">Bank Statement Dashboard</h1>
+      <span id="greeting-line" style="font-size:11px;font-weight:600;color:#FF6200;white-space:nowrap;"></span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div style="overflow:hidden;max-width:320px;font-size:12px;font-weight:600;color:#1d4ed8;letter-spacing:0.3px;">
+      <marquee behavior="scroll" direction="left" scrollamount="3">
+        🏦 Bank Statement Dashboard &nbsp;|&nbsp; Prepared by Nitesh &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      </marquee>
+    </div>
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()" id="upload-btn">
+      ⬆ Upload Statement(s)
+    </button>
+    <button class="upload-btn" id="clear-btn" onclick="clearAll()" style="display:none;background:#64748b;">
+      ✕ Clear All
+    </button>
+    <input type="file" id="file-input" multiple accept=".xlsx,.xls,.xlsb,.csv" onchange="handleFiles(this.files)"/>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Upload Zone -->
+  <div id="upload-zone"
+    onclick="document.getElementById('file-input').click()"
+    ondragover="event.preventDefault(); this.classList.add('dragover')"
+    ondragleave="this.classList.remove('dragover')"
+    ondrop="event.preventDefault(); this.classList.remove('dragover'); handleFiles(event.dataTransfer.files)">
+    <div class="upload-icon">🏦</div>
+    <div class="upload-title">Drop Bank Statement(s) Here</div>
+    <div class="upload-sub">or click to browse files</div>
+    <div class="upload-hint">Supports .xlsx · .xls · .xlsb · .csv · Multiple accounts supported · Statement format auto-detected</div>
+  </div>
+
+  <!-- Account Tabs (multiple files) -->
+  <div id="account-tabs">
+    <div class="tabs" id="tabs-container"></div>
+  </div>
+
+  <!-- KPI Cards per Account -->
+  <div id="kpi-section" style="display:none; margin-bottom:20px;">
+    <div id="kpi-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px;"></div>
+  </div>
+
+  <!-- Transaction Table -->
+  <div id="table-section">
+    <div class="table-card">
+      <div class="table-header">
+        <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+          <span class="table-title" id="table-title">Transactions</span>
+          <span id="table-meta" style="font-size:11px;color:var(--gray-400);font-weight:500;"></span>
+        </div>
+        <div class="table-controls">
+          <input class="search-input" type="text" placeholder="🔍 Search transactions..." id="search-input" oninput="applyFilters()"/>
+          <select class="filter-select" id="type-filter" onchange="applyFilters()">
+            <option value="">All Types</option>
+            <option value="RTGS">RTGS</option>
+            <option value="NEFT">NEFT</option>
+            <option value="IMPS">IMPS</option>
+            <option value="UPI">UPI</option>
+            <option value="OTHER">Other</option>
+          </select>
+          <select class="filter-select" id="flow-filter" onchange="applyFilters()">
+            <option value="">All</option>
+            <option value="credit">Credit Only</option>
+            <option value="debit">Debit Only</option>
+          </select>
+          <button class="download-btn" onclick="downloadCSV()">⬇ CSV</button>
+          <button class="download-btn" onclick="downloadExcel()">⬇ Excel</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Account No</th>
+              <th>IFSC</th>
+              <th>Date</th>
+              <th>Transaction Details</th>
+              <th style="text-align:right">Debit (₹)</th>
+              <th style="text-align:right">Credit (₹)</th>
+              <th>POC</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="pagination-info" id="pagination-info"></span>
+          <select class="rows-select" id="rows-per-page" onchange="currentPage=1;renderTable()">
+            <option value="25">25 rows</option>
+            <option value="50" selected>50 rows</option>
+            <option value="100">100 rows</option>
+          </select>
+        </div>
+        <div class="pagination-btns" id="pagination-btns"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let allAccounts = [];     // array of parsed account objects
+let activeAccount = 0;
+let filteredRows = [];
+let currentPage = 1;
+
+function saveToStorage() {
+  try { localStorage.setItem('bsd_accounts', JSON.stringify(allAccounts)); } catch(e) {}
+}
+
+function clearAll() {
+  allAccounts = [];
+  localStorage.removeItem('bsd_accounts');
+  document.getElementById('upload-zone').style.display = '';
+  document.getElementById('clear-btn').style.display = 'none';
+  document.getElementById('upload-btn').textContent = '⬆ Upload Statement(s)';
+  ['account-tabs','kpi-section','table-section'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('file-input').value = '';
+}
+
+function handleFiles(files) {
+  const promises = Array.from(files).map(f => parseFile(f));
+  Promise.all(promises).then(accounts => {
+    const newAccounts = accounts.filter(Boolean);
+    if (!newAccounts.length) return;
+    // Append, replacing any existing account with same account number
+    newAccounts.forEach(na => {
+      const idx = allAccounts.findIndex(a => a.meta.accountNo === na.meta.accountNo);
+      if (idx >= 0) allAccounts[idx] = na;
+      else allAccounts.push(na);
+    });
+    document.getElementById('upload-zone').style.display = 'none';
+    document.getElementById('clear-btn').style.display = '';
+    document.getElementById('upload-btn').textContent = '⬆ Add More Statements';
+    document.getElementById('file-input').value = '';
+    setupTabs();
+    switchAccount(allAccounts.length - 1);
+    saveToStorage();
+  });
+}
+
+function parseFile(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    const ext = file.name.toLowerCase().split('.').pop();
+    const isBinary = ext === 'xlsb';
+    const isCsv    = ext === 'csv';
+    reader.onload = e => {
+      try {
+        let raw;
+        if (isCsv) {
+          const wb = XLSX.read(e.target.result, { type: 'string' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+        } else {
+          const opts = isBinary
+            ? { type: 'binary', cellDates: false }
+            : { type: 'array', cellText: true, cellDates: false };
+          const wb = XLSX.read(e.target.result, opts);
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: isBinary });
+        }
+        resolve(parseStatement(massageRaw(raw), file.name));
+      } catch(err) {
+        console.error('Failed to parse file:', file.name, err);
+        resolve(null);
+      }
+    };
+    if (isCsv) reader.readAsText(file);
+    else if (isBinary) reader.readAsBinaryString(file);
+    else reader.readAsArrayBuffer(file);
+  });
+}
+
+// Convert Excel serial number to { date: "DD/MM/YYYY", time: "HH:MM:SS" }
+// Junk row keywords — rows whose first non-empty cell matches are skipped
+const JUNK_PATTERNS = [
+  /^(total|grand total|sub.?total|closing balance|opening balance|page \d|continued|statement of|sr\.?\s*no\.?|s\.?\s*no\.?)$/i
+];
+
+function massageRaw(raw) {
+  return raw
+    // 1. Remove fully empty rows
+    .filter(row => row && row.some(c => String(c).trim() !== ''))
+    // 2. Skip junk rows (totals, page headers, serial-no header rows)
+    .filter(row => {
+      const first = String(row.find(c => String(c).trim()) || '').trim();
+      return !JUNK_PATTERNS.some(p => p.test(first));
+    })
+    // 3. Clean each cell
+    .map(row => row.map(cell => {
+      let v = String(cell === null || cell === undefined ? '' : cell);
+      v = v.trim();                                     // trim whitespace
+      v = v.replace(/\s+/g, ' ');                       // collapse internal spaces
+      v = v.replace(/^'/, '');                             // strip Excel text-prefix apostrophe e.g. 'DR → DR
+      v = v.replace(/^[\u20B9$£€Rs.]+\s*/i, '');        // strip leading currency symbols
+      v = v.replace(/[^\x20-\x7E\u20B9]/g, ' ').trim();// strip non-printable chars
+      return v;
+    }));
+}
+
+function excelSerialToDate(s) {
+  s = parseFloat(s);
+  if (isNaN(s) || s < 40000) return null; // not a plausible recent date serial
+  const d = new Date(Date.UTC(1899, 11, 31) + Math.floor(s) * 86400000);
+  const day = String(d.getUTCDate()).padStart(2,'0');
+  const mon = String(d.getUTCMonth()+1).padStart(2,'0');
+  const yr  = d.getUTCFullYear();
+  const frac = s - Math.floor(s);
+  const totalSec = Math.round(frac * 86400);
+  const hr  = String(Math.floor(totalSec/3600)).padStart(2,'0');
+  const min = String(Math.floor((totalSec%3600)/60)).padStart(2,'0');
+  const sec = String(totalSec%60).padStart(2,'0');
+  return { date: `${day}/${mon}/${yr}`, time: `${hr}:${min}:${sec}` };
+}
+
+function parseStatement(raw, fileName) {
+  const parseAmt = s => parseFloat(String(s).replace(/,/g,'')) || 0;
+
+  // Flexible label lookup — strips dots/extra spaces, searches all rows up to headerIdx (or 20)
+  const normalize = s => String(s).replace(/[.\s]+/g,' ').trim().toUpperCase();
+  const getVal = (label, maxRow) => {
+    const lbl = normalize(label);
+    for (let i = 0; i < (maxRow || 20); i++) {
+      const row = raw[i] || [];
+      for (let j = 0; j < row.length; j++) {
+        const cell = String(row[j] ?? '').trim();
+        // Format 1: label in col[j], value in col[j+1]
+        if (j < row.length - 1 && normalize(cell) === lbl && String(row[j+1]).trim())
+          return String(row[j+1]).trim();
+        // Format 2: single cell "Key : Value" (HDFC style)
+        const ci = cell.indexOf(':');
+        if (ci > 0) {
+          const key = normalize(cell.substring(0, ci));
+          const val = cell.substring(ci + 1).trim();
+          if (key === lbl && val) return val;
+        }
+      }
+    }
+    return '';
+  };
+
+  // Find header row — scan all cells for date-related keywords
+  let headerIdx = -1;
+  for (let i = 0; i < raw.length; i++) {
+    const row = raw[i] || [];
+    for (let c = 0; c < row.length; c++) {
+      const h = String(row[c] || '').toLowerCase().trim();
+      if (h.includes('trans date') || h === 'transaction date' || h === 'date') {
+        headerIdx = i; break;
+      }
+    }
+    if (headerIdx >= 0) break;
+  }
+  if (headerIdx < 0) return null;
+
+  // Extract metadata (search rows before header)
+  const meta = {};
+  meta.accountNo    = getVal('ACCOUNT NO', headerIdx) || getVal('ACCOUNT NUMBER', headerIdx);
+  meta.customerName = getVal('CUSTOMER NAME', headerIdx);
+  meta.period       = getVal('STATEMENT PERIOD', headerIdx) || getVal('PERIOD', headerIdx);
+  meta.accountType  = getVal('ACCOUNT TYPE', headerIdx);
+  meta.ifsc         = getVal('IFSC', headerIdx);
+  meta.branch       = getVal('BRANCH', headerIdx);
+  // Account-specific IFSC overrides
+  if (meta.accountNo === '12022020002959') meta.ifsc = 'HDFC0001202';
+  // Fallback: customer name from first non-empty cell in first few rows
+  if (!meta.customerName) {
+    for (let i = 0; i < Math.min(5, headerIdx); i++) {
+      const v = String((raw[i] || [])[0] || '').trim();
+      if (v && !/^\d/.test(v) && v.length > 3) { meta.customerName = v; break; }
+    }
+  }
+
+  // Extract summary from row 15-16 (IDFC format) if available
+  const summaryRow = raw[16] || [];
+  const summary = {
+    openingBalance: parseAmt(summaryRow[0]),
+    totalDebits:    parseAmt(summaryRow[1]),
+    totalCredits:   parseAmt(summaryRow[2]),
+    closingBalance: parseAmt(summaryRow[3])
+  };
+
+  // Detect columns dynamically from header row
+  const headerRow = raw[headerIdx] || [];
+  let dateCol = 0, valueDateCol = -1, descCol = 2, debitCol = 4, creditCol = 5, balanceCol = 6;
+  let drcAmtCol = -1, drcIndCol = -1;
+
+  for (let c = 0; c < headerRow.length; c++) {
+    // Normalize: lowercase, collapse spaces, strip slashes for comparison
+    const h = String(headerRow[c] || '').toLowerCase().replace(/\s+/g,' ').trim();
+    const hn = h.replace(/[\s\/\.]/g,''); // "dr/cr" → "drcr", "c.d.falg" → "cdfalg"
+    if (h.includes('trans date') || h === 'transaction date' || h === 'date') dateCol = c;
+    else if (h === 'value date') valueDateCol = c;
+    else if (h === 'transaction details' || h === 'description') descCol = c;
+    else if (h === 'debit' || h === 'dr' || h.includes('withdrawal')) debitCol = c;
+    else if (h === 'credit' || h === 'cr' || h.includes('deposit')) creditCol = c;
+    else if (h === 'balance' || h.includes('closing balance')) balanceCol = c;
+    else if (h === 'amount' || h === 'transaction amount' || hn === 'drcramount' || hn === 'crdramount') drcAmtCol = c;
+    else if (drcIndCol === -1 && (hn === 'drcr' || hn === 'crdr' || h === 'txn type' || h === 'type' || hn === 'cdflag' || hn === 'cdfalg')) drcIndCol = c;
+  }
+  // Skip DR/CR indicator column if it appears after Balance column
+  if (drcIndCol > balanceCol) drcIndCol = -1;
+
+  // Parse transactions
+  const transactions = [];
+  for (let i = headerIdx + 1; i < raw.length; i++) {
+    const row = raw[i] || [];
+    const isKKBK = meta.ifsc && meta.ifsc.toUpperCase().startsWith('KKBK');
+    const useDateCol = valueDateCol >= 0 ? valueDateCol : dateCol;
+    const rawDate = String(row[useDateCol] || '').trim();
+    const desc    = String(row[descCol] || '').trim();
+    const balance = parseAmt(row[balanceCol]);
+
+    if (!rawDate || desc === 'Opening Balance') continue;
+    if (!desc) continue;
+
+    // Parse date — handle "DD/MM/YYYY HH:MM:SS", "DD-MM-YYYY", or Excel serial float
+    let date = '', time = '';
+    const serial = excelSerialToDate(rawDate);
+    if (serial) {
+      date = serial.date; time = serial.time;
+    } else {
+      date = rawDate.split(' ')[0].replace(/-/g,'/'); // normalise DD-MM-YYYY → DD/MM/YYYY
+      time = rawDate.split(' ')[1] || '';
+    }
+    if (!date) continue;
+
+    // Resolve debit/credit
+    let debit = 0, credit = 0;
+    if (isKKBK && drcAmtCol >= 0 && drcIndCol >= 0) {
+      // KKBK: Amount column + explicit DR/CR indicator column
+      const amt = parseAmt(row[drcAmtCol]);
+      const ind = String(row[drcIndCol]).toUpperCase().trim();
+      if (ind === 'DR') debit = amt;
+      else if (ind === 'CR') credit = amt;
+    } else if (drcAmtCol >= 0) {
+      const amt = parseAmt(row[drcAmtCol]);
+      const ind = String(drcIndCol >= 0 ? row[drcIndCol] : row[drcAmtCol]).toUpperCase().trim();
+      if (ind === 'DR' || ind === 'D' || ind.includes('DEBIT') || ind.includes('WITHDRAWAL')) debit = amt;
+      else if (ind === 'CR' || ind === 'C' || ind.includes('CREDIT') || ind.includes('DEPOSIT')) credit = amt;
+    } else {
+      const rawD = String(row[debitCol] || '').trim();
+      const rawC = String(row[creditCol] || '').trim();
+      if (/cr$/i.test(rawD))      credit = parseAmt(rawD);
+      else if (/dr$/i.test(rawC)) debit  = parseAmt(rawC);
+      else { debit = parseAmt(rawD); credit = parseAmt(rawC); }
+    }
+
+    if (!debit && !credit && !balance) continue;
+
+    // Detect transaction type
+    let type = 'OTHER';
+    const descUp = desc.toUpperCase();
+    if (descUp.startsWith('RTGS') || descUp.includes('RTGS')) type = 'RTGS';
+    else if (descUp.startsWith('NEFT') || descUp.includes('NEFT')) type = 'NEFT';
+    else if (descUp.startsWith('IMPS') || descUp.includes('IMPS')) type = 'IMPS';
+    else if (descUp.includes('UPI') || descUp.includes('UPP')) type = 'UPI';
+
+    transactions.push({ date, time, desc, debit, credit, balance, type, accountNo: meta.accountNo, ifsc: meta.ifsc });
+  }
+
+  return { meta, summary, transactions: dedupe(transactions), fileName };
+}
+
+function setupTabs() {
+  const tabsDiv = document.getElementById('account-tabs');
+  const container = document.getElementById('tabs-container');
+  container.innerHTML = '';
+  if (allAccounts.length > 1) {
+    tabsDiv.style.display = 'block';
+    allAccounts.forEach((acc, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn' + (idx === 0 ? ' active' : '');
+      btn.textContent = acc.meta.accountNo ? `A/C ···${acc.meta.accountNo.slice(-4)}` : acc.fileName;
+      btn.onclick = () => switchAccount(idx);
+      container.appendChild(btn);
+    });
+    // Combined tab
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn';
+    btn.textContent = '📊 All Accounts';
+    btn.onclick = () => switchAccount('all');
+    container.appendChild(btn);
+  } else {
+    tabsDiv.style.display = 'none';
+  }
+}
+
+function switchAccount(idx) {
+  activeAccount = idx;
+  // Update tab UI
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === idx || (idx === 'all' && i === allAccounts.length));
+  });
+
+  let acc, transactions, summary, meta;
+
+  if (idx === 'all') {
+    // Combine all
+    transactions = dedupe(allAccounts.flatMap(a => a.transactions)
+      .sort((a, b) => parseDateStr(a.date) - parseDateStr(b.date)));
+    summary = allAccounts.reduce((s, a) => ({
+      openingBalance: s.openingBalance + a.summary.openingBalance,
+      totalDebits:    s.totalDebits + a.summary.totalDebits,
+      totalCredits:   s.totalCredits + a.summary.totalCredits,
+      closingBalance: s.closingBalance + a.summary.closingBalance,
+    }), { openingBalance: 0, totalDebits: 0, totalCredits: 0, closingBalance: 0 });
+    meta = { customerName: allAccounts[0].meta.customerName, period: allAccounts[0].meta.period, accountNo: 'All Accounts' };
+  } else {
+    acc = allAccounts[idx];
+    transactions = acc.transactions;
+    summary = acc.summary;
+    meta = acc.meta;
+  }
+
+  const metaParts = [];
+  if (meta.accountNo && meta.accountNo !== 'All Accounts') metaParts.push('A/C: ' + meta.accountNo);
+  if (meta.ifsc) metaParts.push('IFSC: ' + meta.ifsc);
+  document.getElementById('table-meta').textContent = metaParts.join('  ·  ');
+  filteredRows = sortByAccDate(transactions);
+  currentPage = 1;
+  document.getElementById('search-input').value = '';
+  document.getElementById('type-filter').value = '';
+  document.getElementById('flow-filter').value = '';
+  renderTable();
+
+  renderKPIs(idx);
+  document.getElementById('table-section').style.display = 'block';
+}
+
+function renderKPIs(activeIdx) {
+  const grid = document.getElementById('kpi-grid');
+  grid.innerHTML = allAccounts.map((acc, i) => {
+    const txns = acc.transactions;
+    const totalDr = txns.reduce((s, t) => s + t.debit, 0);
+    const totalCr = txns.reduce((s, t) => s + t.credit, 0);
+    const net     = totalCr - totalDr;
+    const isActive = activeIdx === i || activeIdx === 'all';
+    return `
+    <div class="kpi-card c${i % 6}${isActive ? ' active-card' : ''}" onclick="switchAccount(${i})" style="cursor:pointer;">
+      <div class="kpi-acno">A/C: ${acc.meta.accountNo || '—'}</div>
+      <div class="kpi-ifsc">${acc.meta.ifsc || ''} · ${acc.meta.period || ''}</div>
+      <div class="kpi-row"><span class="kpi-lbl">Credit</span><span class="kpi-val cr">₹${fmt(totalCr)}</span></div>
+      <div class="kpi-row"><span class="kpi-lbl">Debit</span><span class="kpi-val dr">₹${fmt(totalDr)}</span></div>
+      <div class="kpi-row"><span class="kpi-lbl">Net Flow</span><span class="kpi-val ${net>=0?'cr':'dr'}">₹${fmt(Math.abs(net))}</span></div>
+      <div class="kpi-row"><span class="kpi-lbl">Txns</span><span class="kpi-val">${txns.length}</span></div>
+    </div>`;
+  }).join('');
+  document.getElementById('kpi-section').style.display = 'block';
+}
+
+const sortByAccDate = arr => [...arr].sort((a, b) => {
+  const accCmp = String(a.accountNo || '').localeCompare(String(b.accountNo || ''));
+  return accCmp !== 0 ? accCmp : parseDateStr(a.date) - parseDateStr(b.date);
+});
+
+function parseDateStr(d) {
+  if (!d) return 0;
+  const parts = d.split('/');
+  if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+  return 0;
+}
+
+
+const txKey = t => `${t.date}|${t.time}|${t.desc}|${t.debit}|${t.credit}`;
+const dedupe = arr => { const seen = new Set(); return arr.filter(t => { const k = txKey(t); return seen.has(k) ? false : seen.add(k); }); };
+const fmt = n => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmtDate = d => { const p = d.split('/'); return p.length===3 ? `${p[0]}-${MONTHS[+p[1]-1]}-${p[2]}` : d; };
+
+
+
+function applyFilters() {
+  const searchEl = document.getElementById('search-input');
+  const typeEl   = document.getElementById('type-filter');
+  const flowEl   = document.getElementById('flow-filter');
+  const search = searchEl.value.toLowerCase();
+  const type   = typeEl.value;
+  const flow   = flowEl.value;
+
+  // Highlight active filters
+  searchEl.classList.toggle('filter-active', !!search);
+  typeEl.classList.toggle('filter-active', !!type);
+  flowEl.classList.toggle('filter-active', !!flow);
+
+  const source = activeAccount === 'all'
+    ? allAccounts.flatMap(a => a.transactions).sort((a,b) => parseDateStr(a.date)-parseDateStr(b.date))
+    : allAccounts[activeAccount].transactions;
+
+  filteredRows = sortByAccDate(source.filter(t => {
+    if (search && !t.desc.toLowerCase().includes(search) && !t.date.includes(search)) return false;
+    if (type && t.type !== type) return false;
+    if (flow === 'credit' && !t.credit) return false;
+    if (flow === 'debit'  && !t.debit)  return false;
+    return true;
+  }));
+  currentPage = 1;
+  renderTable();
+}
+
+function getDownloadData() {
+  const allCols = [
+    { key: 'accountNo', label: 'Account No',            val: t => t.accountNo || '' },
+    { key: 'ifsc',      label: 'IFSC',                  val: t => t.ifsc || '' },
+    { key: 'date',      label: 'Date',                  val: t => t.date },
+    { key: 'desc',      label: 'Transaction Details',   val: t => t.desc },
+    { key: 'debit',     label: 'Debit (INR)',            val: t => t.debit > 0 ? t.debit : '' },
+    { key: 'credit',    label: 'Credit (INR)',           val: t => t.credit > 0 ? t.credit : '' },
+    { key: 'poc',       label: 'POC',                   val: t => t.poc || '' },
+  ];
+  // Keep only columns that have at least one non-empty value across all filtered rows
+  const activeCols = allCols.filter(col => filteredRows.some(t => col.val(t) !== '' && col.val(t) !== null && col.val(t) !== undefined));
+  return { activeCols, rows: filteredRows };
+}
+
+function downloadCSV() {
+  const { activeCols, rows } = getDownloadData();
+  const headers = activeCols.map(c => c.label);
+  const dataRows = rows.map(t => activeCols.map(c => String(c.val(t))));
+  const csv = [headers, ...dataRows].map(r => r.map(v => '"' + v.replace(/"/g, '""') + '"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'transactions.csv';
+  a.click();
+}
+
+function downloadExcel() {
+  const { activeCols, rows } = getDownloadData();
+  const numCols = new Set(['Debit (INR)', 'Credit (INR)']);
+  const colWidths = { 'Account No': 22, 'IFSC': 16, 'POC': 20, 'Date': 16, 'Transaction Details': 55, 'Debit (INR)': 18, 'Credit (INR)': 18 };
+
+  // Build data with proper types (numbers as numbers, not strings)
+  const dataRows = rows.map(t => {
+    const obj = {};
+    activeCols.forEach(c => {
+      const v = c.val(t);
+      obj[c.label] = (numCols.has(c.label) && v !== '') ? parseFloat(v) : v;
+    });
+    return obj;
+  });
+
+  const headers = activeCols.map(c => c.label);
+  const ws = XLSX.utils.json_to_sheet(dataRows, { header: headers });
+
+  // Style header row: bold + background
+  const headerStyle = { font: { bold: true, sz: 11, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '2563EB' } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: false }, border: { bottom: { style: 'thin', color: { rgb: 'CCCCCC' } } } };
+  const dataStyle  = { font: { sz: 10 }, alignment: { vertical: 'center' }, border: { bottom: { style: 'hair', color: { rgb: 'E5E7EB' } }, right: { style: 'hair', color: { rgb: 'E5E7EB' } } } };
+  const numStyle   = { ...dataStyle, alignment: { ...dataStyle.alignment, horizontal: 'right' }, numFmt: '#,##0.00' };
+  const altStyle   = { ...dataStyle, fill: { fgColor: { rgb: 'F0F4FF' } } };
+  const altNumStyle= { ...numStyle,  fill: { fgColor: { rgb: 'F0F4FF' } } };
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let C = range.s.c; C <= range.e.c; C++) {
+    // Header cell
+    const hCell = ws[XLSX.utils.encode_cell({ r: 0, c: C })];
+    if (hCell) hCell.s = headerStyle;
+    // Data cells
+    for (let R = 1; R <= range.e.r; R++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+      if (!cell) continue;
+      const isNum = numCols.has(headers[C]);
+      const isAlt = R % 2 === 0;
+      cell.s = isNum ? (isAlt ? altNumStyle : numStyle) : (isAlt ? altStyle : dataStyle);
+      if (isNum) cell.z = '#,##0.00';
+    }
+  }
+
+  // Column widths
+  ws['!cols'] = activeCols.map(c => ({ wch: colWidths[c.label] || 18 }));
+
+  // Row heights: header taller
+  ws['!rows'] = [{ hpt: 22 }];
+
+  // Freeze panes at E2: freeze row 1 (header) + first 4 columns (A–D)
+  const freezeCols = Math.min(4, activeCols.length);
+  ws['!freeze'] = { xSplit: freezeCols, ySplit: 1 };
+
+  // Auto-filter on header row
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: 0, c: range.e.c } }) };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+  XLSX.writeFile(wb, 'transactions.xlsx');
+}
+
+function renderTable() {
+  const rowsPerPage = parseInt(document.getElementById('rows-per-page').value);
+  const total = filteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const start = (currentPage - 1) * rowsPerPage;
+  const pageRows = filteredRows.slice(start, start + rowsPerPage);
+
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = pageRows.map(t => {
+    return `<tr>
+      <td style="white-space:nowrap;font-size:11px;">${t.accountNo || '—'}</td>
+      <td style="white-space:nowrap;font-size:11px;">${t.ifsc || '—'}</td>
+      <td class="td-date">${fmtDate(t.date)}<br><span style="color:var(--gray-400);font-size:10px">${t.time}</span></td>
+      <td class="td-desc" title="${t.desc.replace(/"/g,"'")}">${t.desc}</td>
+      <td class="td-amount debit">${t.debit  ? '₹'+fmt(t.debit)  : '—'}</td>
+      <td class="td-amount credit">${t.credit ? '₹'+fmt(t.credit) : '—'}</td>
+      <td style="white-space:nowrap;font-size:11px;">${t.poc || '—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('table-title').textContent =
+    `Transactions (${total} ${total !== filteredRows.length ? 'filtered' : ''})`;
+  document.getElementById('pagination-info').textContent =
+    `Showing ${start+1}–${Math.min(start+rowsPerPage, total)} of ${total}`;
+
+  // Pagination buttons
+  const btnDiv = document.getElementById('pagination-btns');
+  let btns = '';
+  btns += `<button class="page-btn" onclick="gotoPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹ Prev</button>`;
+  const range = pageRange(currentPage, totalPages);
+  range.forEach(p => {
+    if (p === '...') btns += `<span style="padding:5px 4px;font-size:12px;color:var(--gray-400)">…</span>`;
+    else btns += `<button class="page-btn ${p===currentPage?'active':''}" onclick="gotoPage(${p})">${p}</button>`;
+  });
+  btns += `<button class="page-btn" onclick="gotoPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>Next ›</button>`;
+  btnDiv.innerHTML = btns;
+}
+
+function gotoPage(p) {
+  const rowsPerPage = parseInt(document.getElementById('rows-per-page').value);
+  const total = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
+  if (p < 1 || p > total) return;
+  currentPage = p;
+  renderTable();
+}
+
+function pageRange(cur, total) {
+  if (total <= 7) return Array.from({length:total},(_,i)=>i+1);
+  if (cur <= 4) return [1,2,3,4,5,'...',total];
+  if (cur >= total-3) return [1,'...',total-4,total-3,total-2,total-1,total];
+  return [1,'...',cur-1,cur,cur+1,'...',total];
+}
+
+// Restore data from localStorage on page load
+document.addEventListener('DOMContentLoaded', () => {
+  // Greeting based on live time
+  (function() {
+    const h = new Date().getHours();
+    const greet = h < 12 ? '☀️ Good Morning, Nitesh!'
+                : h < 17 ? '🌤️ Good Afternoon, Nitesh!'
+                : h < 21 ? '🌆 Good Evening, Nitesh!'
+                :           '🌙 Good Night, Nitesh!';
+    const today = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    document.getElementById('greeting-line').textContent = `${greet}  ·  ${today}`;
+  })();
+
+  try {
+    const saved = localStorage.getItem('bsd_accounts');
+    if (!saved) return;
+    allAccounts = JSON.parse(saved);
+    if (!allAccounts || !allAccounts.length) return;
+    document.getElementById('upload-zone').style.display = 'none';
+    document.getElementById('clear-btn').style.display = '';
+    document.getElementById('upload-btn').textContent = '⬆ Add More Statements';
+    setupTabs();
+    switchAccount(allAccounts.length - 1);
+  } catch(e) { allAccounts = []; }
+});
+</script>
+</body>
+</html>
