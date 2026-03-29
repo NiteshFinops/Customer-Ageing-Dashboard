@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Project Dashboard</title>
+  <title>This is FinOps</title>
+  <link rel="icon" type="image/png" href="https://www.ixigo.com/favicon.ico" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -176,15 +177,19 @@
     .pivot-table th {
       background: #0d9488; color: #fff; padding: 7px 10px; text-align: right;
       border: 1px solid #0f766e; white-space: nowrap; font-weight: 700;
+      position: sticky; top: 0; z-index: 3;
     }
-    .pivot-table th:first-child { text-align: left; }
+    .pivot-table th:first-child { text-align: left; position: sticky; top: 0; left: 0; z-index: 5; background: #0d9488; }
     .pivot-table td { padding: 6px 10px; border: 1px solid #e5e7eb; text-align: right; white-space: nowrap; }
-    .pivot-table td:first-child { text-align: left; font-weight: 600; }
+    .pivot-table td:first-child { text-align: left; font-weight: 600; position: sticky; left: 0; z-index: 2; background: #fff; }
     .pivot-table tbody tr:nth-child(even) { background: #f0f4ff; }
+    .pivot-table tbody tr:nth-child(even) td:first-child { background: #f0f4ff; }
+    .pivot-table tbody tr:nth-child(odd) td:first-child  { background: #ffffff; }
     .pivot-table tbody tr:hover { background: #dbeafe; }
+    .pivot-table tbody tr:hover td:first-child { background: #dbeafe; }
     .pivot-table tfoot tr { background: #0d9488; color: #fff; font-weight: 700; }
     .pivot-table tfoot td { border: 1px solid #0f766e; padding: 7px 10px; }
-    .pivot-table tfoot td:first-child { text-align: left; }
+    .pivot-table tfoot td:first-child { text-align: left; position: sticky; left: 0; z-index: 2; background: #0d9488; }
 
     /* SETTINGS PANEL */
     .settings-panel {
@@ -266,7 +271,12 @@
     table { width: 100%; border-collapse: collapse; font-size: 12.5px; border: 1px solid #d1d5db; }
     thead tr { background: #0d9488; }
     th { padding: 9px 12px; text-align: left; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #fff; border: 1px solid #0f766e; cursor: pointer; user-select: none; white-space: nowrap; position: sticky; top: 0; z-index: 2; background: #0d9488; }
+    th:first-child { position: sticky; top: 0; left: 0; z-index: 4; background: #0d9488; }
     th:hover { background: #1d4ed8; color: #bfdbfe; }
+    td:first-child { position: sticky; left: 0; z-index: 1; background: #fff; }
+    tbody tr:nth-child(even) td:first-child { background: #f0f4ff; }
+    tbody tr:nth-child(odd)  td:first-child { background: #ffffff; }
+    tbody tr:hover td:first-child { background: #dbeafe; }
     .report-header-line { font-size: 13px; font-weight: 700; color: var(--gray-700); padding: 8px 0 14px; border-bottom: 2px solid var(--primary); margin-bottom: 14px; letter-spacing: 0.01em; }
     td { padding: 7px 12px; border: 1px solid #e5e7eb; color: var(--gray-700); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     tbody tr:nth-child(even) { background: #f0f4ff; }
@@ -350,9 +360,28 @@
     <button class="btn btn-outline btn-sm" id="settingsToggle" style="display:none">⚙ Customize</button>
     <button class="btn btn-outline btn-sm" id="exportBtn" style="display:none">↓ Export CSV</button>
     <button class="btn btn-outline btn-sm" id="sendReportBtn" style="display:none" onclick="sendReportMail()">✉ Send Report</button>
+    <button class="btn btn-outline btn-sm" id="narratorBtn" style="display:none" onclick="toggleNarrator()">🔊 Narrator</button>
     <label for="uploadBtn" class="btn btn-primary btn-sm" id="uploadTrigger">↑ Upload Excel</label>
     <input type="file" id="uploadBtn" accept=".xlsx,.xls,.csv" />
   </div>
+</div>
+
+<!-- NARRATOR PANEL -->
+<div id="narratorPanel" style="display:none;position:fixed;bottom:24px;left:24px;z-index:9997;background:linear-gradient(135deg,#0f766e,#0891b2);border-radius:14px;padding:16px 20px;box-shadow:0 8px 32px rgba(13,148,136,0.45);color:#fff;min-width:270px;font-family:Aptos,Arial,sans-serif;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <span style="font-weight:700;font-size:14px;">🔊 Report Narrator</span>
+    <button onclick="toggleNarrator()" style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;">✕</button>
+  </div>
+  <div id="narratorStatus" style="font-size:11px;color:#ccfbf1;margin-bottom:12px;min-height:16px;">Ready to read</div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button onclick="narratorPlay()"  style="flex:1;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:7px;padding:7px 0;font-size:13px;cursor:pointer;font-weight:600;">▶ Play</button>
+    <button onclick="narratorPause()" style="flex:1;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:7px;padding:7px 0;font-size:13px;cursor:pointer;font-weight:600;">⏸ Pause</button>
+    <button onclick="narratorStop()"  style="flex:1;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:7px;padding:7px 0;font-size:13px;cursor:pointer;font-weight:600;">⏹ Stop</button>
+  </div>
+  <div style="font-size:11px;color:#ccfbf1;margin-bottom:4px;">Speed: <span id="narratorSpeedVal">1x</span></div>
+  <input type="range" id="narratorSpeed" min="0.5" max="2" step="0.1" value="1"
+    oninput="document.getElementById('narratorSpeedVal').textContent=parseFloat(this.value).toFixed(1)+'x'"
+    style="width:100%;accent-color:#ffffff;cursor:pointer;">
 </div>
 
 <!-- EMAIL MODAL -->
@@ -781,6 +810,160 @@
 
 <script>
 
+// ── NARRATOR ───────────────────────────────────────────────────────────
+function toggleNarrator() {
+  const p = document.getElementById('narratorPanel');
+  if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+function buildNarratorScript() {
+  const parts = [];
+  // 1. Greeting
+  const gt = document.getElementById('greetingText');
+  const gd = document.getElementById('greetingDate');
+  if (gt?.textContent?.trim()) parts.push(gt.textContent.trim() + (gd?.textContent?.trim() ? ', ' + gd.textContent.trim() : ''));
+  // 2. Trade Receivables
+  const trCards = document.getElementById('trCards');
+  if (trCards && trCards.style.display !== 'none') {
+    trCards.querySelectorAll('.tr-card-item').forEach(item => {
+      const lbl = item.querySelector('label')?.textContent?.trim();
+      const val = item.querySelector('.val')?.textContent?.trim();
+      if (lbl && val) parts.push(`${lbl}: ${val}`);
+    });
+  }
+  // 3. KPI Cards
+  parts.push('Key Performance Indicators.');
+  document.querySelectorAll('#kpiGrid .kpi-card').forEach(card => {
+    const label = card.querySelector('.kpi-label')?.textContent?.trim();
+    const value = card.querySelector('.kpi-value')?.textContent?.trim();
+    const sub   = card.querySelector('.kpi-sub')?.textContent?.trim();
+    if (label && value) parts.push(`${label}: ${value}${sub ? ', ' + sub : ''}`);
+  });
+  // 4. Active tab content
+  const mainVisible = document.getElementById('tab-main')?.style.display !== 'none';
+  if (mainVisible) {
+    const info = document.getElementById('pageInfo')?.textContent?.trim();
+    if (info) parts.push('Data Table: ' + info);
+    const gtRow = document.querySelector('#tableBody tr:last-child');
+    if (gtRow) {
+      const cells = [...gtRow.querySelectorAll('td')].map(td => td.textContent.replace(/[🔴⟩]/g,'').trim()).filter(Boolean);
+      if (cells.length) parts.push('Grand Total: ' + cells.join(', '));
+    }
+  } else {
+    parts.push('Summary and Reporting tab.');
+
+    // Detailed Pivot grand total
+    const detTfoot = document.querySelector('#pvDetailed tfoot tr');
+    if (detTfoot) {
+      const vals = [...detTfoot.querySelectorAll('td')].map(td => td.textContent.trim()).filter(Boolean).join(', ');
+      if (vals) parts.push(`Detailed Pivot Grand Total: ${vals}`);
+    }
+
+    // Ageing by Sales Person — read each row
+    const spTable = document.querySelector('#pvSalesPerson table');
+    if (spTable) {
+      parts.push('Ageing by Sales Person.');
+      spTable.querySelectorAll('tbody tr').forEach(tr => {
+        const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.replace(/[🔴]/g,'').trim()).filter(Boolean);
+        if (cells.length >= 2) parts.push(`${cells[0]}: Total ${cells[cells.length - 1]}`);
+      });
+      const spFoot = spTable.querySelector('tfoot tr');
+      if (spFoot) {
+        const fv = [...spFoot.querySelectorAll('td')].map(td => td.textContent.trim()).filter(Boolean).join(', ');
+        if (fv) parts.push(`Sales Person Grand Total: ${fv}`);
+      }
+    }
+
+    // Customer-wise Ageing — read top 10
+    const custTable = document.querySelector('#pvCustomer table');
+    if (custTable) {
+      parts.push('Customer-wise Ageing, Top customers by pending amount.');
+      const custRows = [...custTable.querySelectorAll('tbody tr')].slice(0, 10);
+      custRows.forEach((tr, i) => {
+        const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.replace(/[🔴]/g,'').trim()).filter(Boolean);
+        if (cells.length >= 2) parts.push(`Number ${i + 1}: ${cells[0]}, Total pending: ${cells[cells.length - 1]}`);
+      });
+      const custFoot = custTable.querySelector('tfoot tr') ||
+        [...custTable.querySelectorAll('tr')].find(r => r.style.background?.includes('#0d9488'));
+      if (custFoot) {
+        const fv = [...custFoot.querySelectorAll('td')].map(td => td.textContent.trim()).filter(Boolean).join(', ');
+        if (fv) parts.push(`Customer Grand Total: ${fv}`);
+      }
+    }
+
+    // Other pivot cards (Overdue Analysis, individual type cards)
+    document.querySelectorAll('#tab-summary .pivot-card').forEach(card => {
+      const titleEl = card.querySelector('.pivot-card-title span') || card.querySelector('.pivot-card-title');
+      const title = titleEl?.textContent?.replace(/[📑👤⚠📂🏢]/g,'').trim();
+      const tfoot = card.querySelector('tfoot tr');
+      // Skip already-read cards
+      if (!title || card.querySelector('#pvDetailed,#pvSalesPerson,#pvCustomer')) return;
+      if (tfoot) {
+        const vals = [...tfoot.querySelectorAll('td')].map(td => td.textContent.trim()).filter(Boolean).join(', ');
+        if (vals) parts.push(`${title}: Grand Total: ${vals}`);
+      }
+    });
+  }
+  return parts.join('. ');
+}
+function toIndianWords(numStr) {
+  const clean = String(numStr).replace(/,/g, '').trim();
+  const num = parseFloat(clean);
+  if (isNaN(num) || clean === '') return numStr;
+  const neg = num < 0 ? 'minus ' : '';
+  let abs = Math.abs(num);
+  const decimalPart = Math.round((abs % 1) * 100);
+  abs = Math.floor(abs);
+  const crore    = Math.floor(abs / 10000000); abs %= 10000000;
+  const lakh     = Math.floor(abs / 100000);   abs %= 100000;
+  const thousand = Math.floor(abs / 1000);      abs %= 1000;
+  const remain   = abs;
+  const parts = [];
+  if (crore    > 0) parts.push(`${crore} crore`);
+  if (lakh     > 0) parts.push(`${lakh} lakh`);
+  if (thousand > 0) parts.push(`${thousand} thousand`);
+  if (remain   > 0) parts.push(`${remain}`);
+  if (parts.length === 0) parts.push('zero');
+  let result = neg + parts.join(' ');
+  if (decimalPart > 0) result += ` point ${decimalPart}`;
+  return result;
+}
+function narratorFormatScript(text) {
+  // Replace formatted numbers (with commas) and plain decimals with Indian words
+  return text.replace(/-?[\d,]+(\.\d+)?/g, match => {
+    if (!match.replace(/[,.\-]/g, '').trim()) return match;
+    return toIndianWords(match);
+  });
+}
+function narratorPlay() {
+  if (!window.speechSynthesis) { alert('Speech not supported in this browser. Please use Chrome or Edge.'); return; }
+  speechSynthesis.cancel();
+  const rawScript = buildNarratorScript();
+  if (!rawScript.trim()) { document.getElementById('narratorStatus').textContent = '⚠ No data to read'; return; }
+  const script = narratorFormatScript(rawScript);
+  const utt = new SpeechSynthesisUtterance(script);
+  utt.rate = parseFloat(document.getElementById('narratorSpeed')?.value || '1');
+  utt.lang = 'en-IN';
+  utt.onstart = () => { document.getElementById('narratorStatus').textContent = '▶ Reading report...'; };
+  utt.onend   = () => { document.getElementById('narratorStatus').textContent = '✅ Done'; };
+  utt.onerror = () => { document.getElementById('narratorStatus').textContent = '❌ Error — try again'; };
+  speechSynthesis.speak(utt);
+}
+function narratorPause() {
+  if (!window.speechSynthesis) return;
+  if (speechSynthesis.speaking && !speechSynthesis.paused) {
+    speechSynthesis.pause();
+    document.getElementById('narratorStatus').textContent = '⏸ Paused';
+  } else if (speechSynthesis.paused) {
+    speechSynthesis.resume();
+    document.getElementById('narratorStatus').textContent = '▶ Reading report...';
+  }
+}
+function narratorStop() {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  document.getElementById('narratorStatus').textContent = '⏹ Stopped';
+}
+
 // ── GREETING ───────────────────────────────────────────────────────────
 function getGreeting() {
   const h = new Date().getHours();
@@ -894,7 +1077,7 @@ document.addEventListener('keydown', e => {
     } else {
       if (document.body.style.display === 'none') {
         document.body.style.display = '';
-        document.title = 'Project Dashboard';
+        document.title = 'This is FinOps';
       }
     }
   }, 1000);
@@ -1130,6 +1313,7 @@ function showDashboard() {
   document.getElementById('settingsToggle').style.display = '';
   document.getElementById('exportBtn').style.display = '';
   document.getElementById('sendReportBtn').style.display = '';
+  document.getElementById('narratorBtn').style.display = '';
   // Reset to main tab on every new load
   document.getElementById('tab-main').style.display = '';
   document.getElementById('tab-summary').style.display = 'none';
@@ -1677,7 +1861,7 @@ function buildPivotTable(containerId, groupCol, buckets, extraCols) {
   let gtExtra = extraCols ? Object.fromEntries(extraCols.map(e => [e.key, 0])) : {};
 
   const thStyle = 'padding:7px 10px;color:#fff;border:1px solid #0f766e;text-align:right;white-space:nowrap;position:sticky;top:0;background:#0d9488;';
-  const thLeft  = thStyle + 'text-align:left;';
+  const thLeft  = thStyle + 'text-align:left;position:sticky;left:0;z-index:5;';
 
   let html = `<div style="overflow:auto;max-height:340px;"><table class="pivot-table">
     <thead><tr>
@@ -1691,7 +1875,7 @@ function buildPivotTable(containerId, groupCol, buckets, extraCols) {
     const rows = rawData.filter(r => (String(r[col] ?? '').trim() || '(blank)') === g);
     const bg = i % 2 === 0 ? '#fff' : '#f0f4ff';
     const rowTotal = usedBuckets.reduce((s, b) => s + (rows.reduce((ss, r) => ss + (parseFloat(r[b]) || 0), 0)), 0);
-    html += `<tr style="background:${bg}"><td style="padding:6px 10px;border:1px solid #e5e7eb;font-weight:600;">${g}</td>`;
+    html += `<tr style="background:${bg}"><td style="padding:6px 10px;border:1px solid #e5e7eb;font-weight:600;position:sticky;left:0;z-index:2;background:${bg};">${g}</td>`;
     usedBuckets.forEach(b => {
       const v = rows.reduce((s, r) => s + (parseFloat(r[b]) || 0), 0);
       gt[b] += v;
@@ -1707,7 +1891,7 @@ function buildPivotTable(containerId, groupCol, buckets, extraCols) {
 
   const gtTotal = usedBuckets.reduce((s, b) => s + gt[b], 0);
   html += `</tbody><tfoot><tr>
-    <td style="padding:7px 10px;border:1px solid #0f766e;text-align:left;">Grand Total</td>
+    <td style="padding:7px 10px;border:1px solid #0f766e;text-align:left;position:sticky;left:0;z-index:2;background:#0d9488;">Grand Total</td>
     ${usedBuckets.map(b => `<td style="padding:7px 10px;border:1px solid #0f766e;text-align:right;">${pivotFmt(gt[b])}</td>`).join('')}
     ${extraCols ? extraCols.map(e => `<td style="padding:7px 10px;border:1px solid #0f766e;text-align:right;">${pivotFmt(gtExtra[e.key])}</td>`).join('') : ''}
     <td style="padding:7px 10px;border:1px solid #0f766e;text-align:right;">${pivotFmt(gtTotal)}</td>
@@ -1730,7 +1914,7 @@ function buildDocCountPivot() {
   const thS = 'padding:7px 10px;color:#fff;border:1px solid #0f766e;white-space:nowrap;position:sticky;top:0;background:#0d9488;';
   let html = `<div style="overflow:auto;max-height:340px;"><table class="pivot-table">
     <thead><tr>
-      <th style="${thS}text-align:left;">Type</th>
+      <th style="${thS}text-align:left;left:0;z-index:5;">Type</th>
       <th style="${thS}text-align:right;">Doc Count</th>
       <th style="${thS}text-align:right;">Total Amount</th>
       <th style="${thS}text-align:right;">Pending Amt</th>
@@ -1748,7 +1932,7 @@ function buildDocCountPivot() {
     const bg = i % 2 === 0 ? '#fff' : '#f0f4ff';
     grandTotal.count += count; grandTotal.amount += amount; grandTotal.pending += pending;
     html += `<tr style="background:${bg}">
-      <td style="padding:6px 10px;border:1px solid #e5e7eb;font-weight:600;">${g}</td>
+      <td style="padding:6px 10px;border:1px solid #e5e7eb;font-weight:600;position:sticky;left:0;z-index:2;background:${bg};">${g}</td>
       <td style="padding:6px 10px;border:1px solid #e5e7eb;text-align:right;">${count}</td>
       <td style="padding:6px 10px;border:1px solid #e5e7eb;text-align:right;">${pivotFmt(amount)}</td>
       <td style="padding:6px 10px;border:1px solid #e5e7eb;text-align:right;">${pivotFmt(pending)}</td>
@@ -1757,7 +1941,7 @@ function buildDocCountPivot() {
   });
 
   html += `</tbody><tfoot><tr>
-    <td style="padding:7px 10px;border:1px solid #0f766e;text-align:left;">Grand Total</td>
+    <td style="padding:7px 10px;border:1px solid #0f766e;text-align:left;position:sticky;left:0;z-index:2;background:#0d9488;">Grand Total</td>
     <td style="padding:7px 10px;border:1px solid #0f766e;text-align:right;">${grandTotal.count}</td>
     <td style="padding:7px 10px;border:1px solid #0f766e;text-align:right;">${pivotFmt(grandTotal.amount)}</td>
     <td style="padding:7px 10px;border:1px solid #0f766e;text-align:right;">${pivotFmt(grandTotal.pending)}</td>
@@ -1805,14 +1989,14 @@ function buildCustomerPivot() {
   entries.forEach((e, i) => {
     const bg = i % 2 === 0 ? '#fff' : '#f0f4ff';
     const top3Style = i < 3 ? 'color:#dc2626;font-weight:700;' : 'font-weight:600;';
-    html += `<tr style="background:${bg}"><td style="padding:6px 10px;border:1px solid #e5e7eb;${top3Style}">${i < 3 ? '🔴 ' : ''}${e.name}</td>`;
+    html += `<tr style="background:${bg}"><td style="padding:6px 10px;border:1px solid #e5e7eb;${top3Style}position:sticky;left:0;z-index:2;background:${bg};">${i < 3 ? '🔴 ' : ''}${e.name}</td>`;
     usedAging.forEach(b => { gt[b] += e[b]; html += `<td style="padding:6px 10px;border:1px solid #e5e7eb;text-align:right;${odStyle(b,e[b])}">${pivotFmt(e[b])}</td>`; });
     gtTotal += e.total;
     html += `<td style="padding:6px 10px;border:1px solid #e5e7eb;text-align:right;font-weight:700;">${pivotFmt(e.total)}</td></tr>`;
   });
 
   html += `</tbody><tfoot><tr>
-    <td style="padding:7px 10px;border:1px solid #0f766e;text-align:left;">Grand Total</td>
+    <td style="padding:7px 10px;border:1px solid #0f766e;text-align:left;position:sticky;left:0;z-index:2;background:#0d9488;">Grand Total</td>
     ${usedAging.map(b => `<td style="padding:7px 10px;border:1px solid #0f766e;text-align:right;">${pivotFmt(gt[b])}</td>`).join('')}
     <td style="padding:7px 10px;border:1px solid #0f766e;text-align:right;">${pivotFmt(gtTotal)}</td>
   </tr></tfoot></table></div>`;
@@ -1986,7 +2170,8 @@ function buildTypeCards() {
   const sortedTypes = Object.keys(allTypes).sort();
   const fmtV = v => v === 0 ? '—' : v.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
   const safeId = t => 'tc_' + t.replace(/[^a-zA-Z0-9]/g, '_');
-  const thS = 'padding:7px 10px;color:#fff;border:1px solid #0f766e;text-align:left;white-space:nowrap;position:sticky;top:0;background:#0d9488;font-size:10px;font-family:Aptos,Arial,sans-serif;';
+  const thS     = 'padding:7px 10px;color:#fff;border:1px solid #0f766e;text-align:left;white-space:nowrap;position:sticky;top:0;background:#0d9488;font-size:10px;font-family:Aptos,Arial,sans-serif;';
+  const thSFirst = thS + 'left:0;z-index:5;';
   const tdL = 'padding:6px 10px;border:1px solid #e5e7eb;text-align:left;white-space:nowrap;font-size:10px;font-family:Aptos,Arial,sans-serif;';
   const tdN = 'padding:6px 10px;border:1px solid #e5e7eb;text-align:left;white-space:nowrap;font-size:10px;font-family:Aptos,Arial,sans-serif;';
 
@@ -2010,7 +2195,7 @@ function buildTypeCards() {
       const bg = i % 2 === 0 ? '#fff' : '#f0f4ff';
       const top3Style = i < 3 ? 'color:#dc2626;font-weight:700;' : 'font-weight:600;';
       return `<tr style="background:${bg};">
-        <td style="${tdL}${top3Style}">${i < 3 ? '🔴 ' : ''}${cust}</td>
+        <td style="${tdL}${top3Style}position:sticky;left:0;z-index:2;background:${bg};">${i < 3 ? '🔴 ' : ''}${cust}</td>
         <td style="${tdL}">${sp}</td>
         <td style="${tdN}font-weight:700;">${fmtV(rowTotal)}</td>
         ${usedAging.map(b => `<td style="${tdN}${odStyle(b,vals[b])}">${fmtV(vals[b])}</td>`).join('')}
@@ -2045,7 +2230,7 @@ function buildTypeCards() {
       <div id="${id}_table" style="overflow:auto;max-height:320px;">
         <table style="width:100%;border-collapse:collapse;">
           <thead><tr style="background:#0d9488;">
-            <th style="${thS}">Customer Name</th>
+            <th style="${thSFirst}">Customer Name</th>
             <th style="${thS}">Sales Person</th>
             <th style="${thS}">Grand Total</th>
             ${usedAging.map(b => `<th style="${thS}">${b}</th>`).join('')}
@@ -2125,10 +2310,11 @@ function buildDetailedPivot() {
   });
 
   const fmtV = v => v === 0 ? '—' : v.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-  const tdS  = 'padding:6px 10px;border:1px solid #e5e7eb;text-align:left;white-space:nowrap;';
-  const tdL  = 'padding:6px 10px;border:1px solid #e5e7eb;text-align:left;white-space:nowrap;';
-  const thS  = 'padding:7px 10px;color:#fff;border:1px solid #0f766e;text-align:left;white-space:nowrap;position:sticky;top:0;background:#0d9488;';
-  const thL  = thS;
+  const tdS     = 'padding:6px 10px;border:1px solid #e5e7eb;text-align:left;white-space:nowrap;';
+  const tdL     = 'padding:6px 10px;border:1px solid #e5e7eb;text-align:left;white-space:nowrap;';
+  const tdLFirst = tdL + 'position:sticky;left:0;z-index:2;';
+  const thS     = 'padding:7px 10px;color:#fff;border:1px solid #0f766e;text-align:left;white-space:nowrap;position:sticky;top:0;background:#0d9488;';
+  const thL     = thS + 'left:0;z-index:5;';
 
   const grandTotals = Object.fromEntries(usedAging.map(b => [b, 0]));
 
@@ -2166,7 +2352,7 @@ function buildDetailedPivot() {
       usedAging.forEach(b => { typeTotals[b] += vals[b]; grandTotals[b] += vals[b]; });
       const top3Style = ci < 3 ? 'color:#dc2626;font-weight:700;' : 'font-weight:600;';
       html += `<tr style="background:${bg};">
-        <td style="${tdL}font-size:10px;color:#6b7280;">${ci === 0 ? `<strong style="color:#0d9488;">${type}</strong>` : ''}</td>
+        <td style="${tdLFirst}font-size:10px;color:#6b7280;background:${bg};">${ci === 0 ? `<strong style="color:#0d9488;">${type}</strong>` : ''}</td>
         <td style="${tdL}${top3Style}">${ci < 3 ? '🔴 ' : ''}${cust}</td>
         <td style="${tdL}">${sp}</td>
         <td style="${tdS}font-weight:700;">${fmtV(rowTotal)}</td>
@@ -2187,7 +2373,7 @@ function buildDetailedPivot() {
 
   const grandTotal = usedAging.reduce((s, b) => s + grandTotals[b], 0);
   html += `</tbody><tfoot><tr style="background:#0d9488;color:#fff;font-weight:700;">
-    <td style="padding:7px 10px;border:1px solid #0f766e;" colspan="3">Grand Total</td>
+    <td style="padding:7px 10px;border:1px solid #0f766e;position:sticky;left:0;z-index:2;background:#0d9488;" colspan="3">Grand Total</td>
     <td style="padding:7px 10px;border:1px solid #0f766e;text-align:left;">${fmtV(grandTotal)}</td>
     ${usedAging.map(b => `<td style="padding:7px 10px;border:1px solid #0f766e;text-align:left;">${fmtV(grandTotals[b])}</td>`).join('')}
   </tr></tfoot></table></div>`;
