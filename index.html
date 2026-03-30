@@ -115,6 +115,8 @@
     .tbtn-send:hover       { background: rgba(217,119,6,0.28); }
     .tbtn-narrator   { color: #e9d5ff; }
     .tbtn-narrator:hover   { background: rgba(139,92,246,0.28); }
+    .tbtn-clear      { color: #fca5a5; }
+    .tbtn-clear:hover      { background: rgba(239,68,68,0.25); }
     .tbtn-upload {
       background: rgba(255,255,255,0.92); color: #0f766e;
       border: 1.5px solid rgba(255,255,255,0.7); padding: 6px 14px;
@@ -199,6 +201,17 @@
     }
     .dash-tab-btn.active { color: #ffffff; border-bottom-color: #ffffff; background: rgba(255,255,255,0.22); }
     .dash-tab-btn:hover:not(.active) { color: #ffffff; background: rgba(255,255,255,0.18); }
+    .dash-tab-btn.has-filter { position:relative; }
+    .dash-tab-btn.has-filter::after {
+      content:''; position:absolute; top:6px; right:6px;
+      width:7px; height:7px; border-radius:50%;
+      background:#f59e0b; box-shadow:0 0 0 2px rgba(245,158,11,0.35);
+    }
+    .filter-active {
+      border-color: #f59e0b !important;
+      background: #fffbeb !important;
+      box-shadow: 0 0 0 2px rgba(245,158,11,0.25) !important;
+    }
 
     /* PIVOT TABLES */
     .pivot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
@@ -215,6 +228,36 @@
       font-size: 13px; font-weight: 700; color: var(--gray-800);
       margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
     }
+    .card-expand-btn {
+      flex-shrink: 0;
+      background: none; border: 1px solid #f97316; border-radius: 5px;
+      color: #f97316; font-size: 11px; font-weight: 700; cursor: pointer; padding: 2px 6px;
+      transition: all 0.15s; white-space: nowrap; line-height: 1.4;
+    }
+    .card-expand-btn:hover { background: #f97316; color: #fff; border-color: #f97316; }
+    /* Fullscreen card modal */
+    #cardModal {
+      display: none; position: fixed; inset: 0; z-index: 99999;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #cardModal.open { display: flex; }
+    #cardModalInner {
+      background: #fff; border-radius: 14px; width: 100%; max-width: 98vw;
+      max-height: 94vh; display: flex; flex-direction: column;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35); overflow: hidden;
+    }
+    #cardModalHeader {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1px solid #e5e7eb;
+      background: #0d9488; color: #fff; border-radius: 14px 14px 0 0;
+      font-size: 14px; font-weight: 700; gap: 12px; flex-shrink: 0;
+    }
+    #cardModalBody {
+      flex: 1; overflow: auto; padding: 20px;
+    }
+    #cardModalBody .pivot-table { font-size: 12px; }
+    #cardModalBody .pivot-table th, #cardModalBody .pivot-table td { padding: 8px 12px; }
     .pivot-table { width: 100%; border-collapse: collapse; font-size: 10px; font-family: Aptos, 'Segoe UI', Arial, sans-serif; }
     .pivot-table th {
       background: #0d9488; color: #fff; padding: 7px 10px; text-align: right;
@@ -399,11 +442,13 @@
     <button class="dash-tab-btn" onclick="switchDashTab('summary', this)">📋 Summary &amp; Reporting</button>
   </div>
   <div class="topbar-right">
-    <!-- Tools group: Customize + Narrator -->
+    <!-- Tools group: Customize + Narrator + Clear -->
     <div class="topbar-group" id="topbarToolsGroup" style="display:none;">
       <button class="tbtn tbtn-customize" id="settingsToggle" title="Customize dashboard columns">⚙ Customize</button>
       <div class="topbar-group-divider"></div>
-      <button class="tbtn tbtn-narrator" id="narratorBtn" onclick="toggleNarrator()" title="Read report aloud">🔊 Narrator</button>
+      <button class="tbtn tbtn-narrator" id="narratorBtn" onclick="toggleNarrator()" title="Read report aloud">🔊 Wanna Hear</button>
+      <div class="topbar-group-divider"></div>
+      <button class="tbtn tbtn-clear" onclick="clearScreen()" title="Clear data and return to upload screen">✕ Clear Screen</button>
     </div>
     <!-- Data group: Export + Send Report -->
     <div class="topbar-group" id="topbarDataGroup" style="display:none;">
@@ -569,6 +614,24 @@ window.addEventListener('load', function(){
   </div>
 </div>
 
+<!-- CARD EXPAND MODAL -->
+<div id="cardModal" onclick="if(event.target===this)closeCardModal()">
+  <div id="cardModalInner">
+    <div id="cardModalHeader">
+      <span id="cardModalTitle">Card</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="downloadCardExcel()" title="Download as Excel"
+          style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;font-weight:600;">↓ Download</button>
+        <button onclick="openCardWindow()" title="Open in new window"
+          style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;font-weight:600;">⧉ New Window</button>
+        <button onclick="closeCardModal()" title="Close"
+          style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:4px 10px;font-size:16px;cursor:pointer;line-height:1;">✕</button>
+      </div>
+    </div>
+    <div id="cardModalBody"></div>
+  </div>
+</div>
+
 <!-- DASHBOARD -->
 <div id="dashboard">
   <div id="sheetTabs" style="display:none;"></div>
@@ -722,11 +785,14 @@ window.addEventListener('load', function(){
     <div class="pivot-grid" style="grid-template-columns:1fr;">
       <div class="pivot-card">
         <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <span>📑 Detailed Pivot — Type › Customer Name › Sales Person</span>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <span>📑 Detailed Pivot — Type › Customer Name › Sales Person</span>
+            <button class="card-expand-btn" onclick="openCardModal(this.closest('.pivot-card'))">⤢ Expand</button>
+          </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input id="pvDetailFilter" type="search" placeholder="🔍 Filter..." oninput="buildDetailedPivot()"
+            <input id="pvDetailFilter" type="search" placeholder="🔍 Filter..." oninput="buildDetailedPivot();updateFilterHighlights()"
               style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;width:130px;color:#374151;" />
-            <select id="pvDetailTypeFilter" onchange="buildDetailedPivot()"
+            <select id="pvDetailTypeFilter" onchange="buildDetailedPivot();updateFilterHighlights()"
               style="font-size:11px;padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;">
               <option value="">All Types</option>
             </select>
@@ -750,9 +816,12 @@ window.addEventListener('load', function(){
     <div class="pivot-grid" style="margin-top:4px;">
       <div class="pivot-card">
         <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <span>👤 Ageing by Sales Person</span>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <span>👤 Ageing by Sales Person</span>
+            <button class="card-expand-btn" onclick="openCardModal(this.closest('.pivot-card'))">⤢ Expand</button>
+          </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input id="pvSalesPersonFilter" type="search" placeholder="🔍 Filter..." oninput="buildPivotTable('pvSalesPerson','Sales Person',agingBuckets)"
+            <input id="pvSalesPersonFilter" type="search" placeholder="🔍 Filter..." oninput="buildPivotTable('pvSalesPerson','Sales Person',agingBuckets);updateFilterHighlights()"
               style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;width:110px;color:#374151;" />
             <select id="pvSalesPersonSort" onchange="buildPivotTable('pvSalesPerson','Sales Person',agingBuckets)"
               style="font-size:11px;padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;">
@@ -768,9 +837,12 @@ window.addEventListener('load', function(){
       </div>
       <div class="pivot-card">
         <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <span>⚠️ Overdue Analysis (&gt;90 Days) by Type</span>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <span>⚠️ Overdue Analysis (&gt;90 Days) by Type</span>
+            <button class="card-expand-btn" onclick="openCardModal(this.closest('.pivot-card'))">⤢ Expand</button>
+          </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input id="pvOverdueFilter" type="search" placeholder="🔍 Filter..." oninput="buildPivotTable('pvOverdue','Type',overdueBuckets)"
+            <input id="pvOverdueFilter" type="search" placeholder="🔍 Filter..." oninput="buildPivotTable('pvOverdue','Type',overdueBuckets);updateFilterHighlights()"
               style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;width:110px;color:#374151;" />
             <select id="pvOverdueSort" onchange="buildPivotTable('pvOverdue','Type',overdueBuckets)"
               style="font-size:11px;padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;">
@@ -789,7 +861,10 @@ window.addEventListener('load', function(){
     <div class="pivot-grid" style="grid-template-columns:1fr;margin-top:4px;">
       <div class="pivot-card">
         <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <span>🏢 Customer-wise Ageing (Top 30 by Pending)</span>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <span>🏢 Customer-wise Ageing (Top 30 by Pending)</span>
+            <button class="card-expand-btn" onclick="openCardModal(this.closest('.pivot-card'))">⤢ Expand</button>
+          </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input id="pvCustFilter" type="search" placeholder="🔍 Filter customer..." oninput="buildCustomerPivot()"
               style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;width:130px;color:#374151;" />
@@ -1080,6 +1155,12 @@ function clearDashboard() {
   document.getElementById('statusBar').textContent = '';
   document.getElementById('sheetTabs').innerHTML  = '';
   document.getElementById('searchBox').value      = '';
+  ['pvDetailFilter','pvSalesPersonFilter','pvOverdueFilter'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const sel = document.getElementById('pvDetailTypeFilter');
+  if (sel) sel.value = '';
+  updateFilterHighlights();
 
   // Reset TR card
   ['trDomVal','trIntVal','trTotalVal','trAmtPending','trValidation'].forEach(id => {
@@ -1488,6 +1569,37 @@ function showDashboard() {
   document.querySelectorAll('.dash-tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
   applySettings();
   openTRModal();
+}
+
+function clearScreen() {
+  // Reset all data
+  rawData = []; filteredData = []; headers = [];
+  currentPage = 1; sortCol = ''; sortAsc = true;
+  // Reset file input so same file can be re-uploaded
+  const inp = document.getElementById('uploadBtn');
+  if (inp) inp.value = '';
+  // Clear search & filters
+  ['searchBox','pvDetailFilter','pvSalesPersonFilter','pvOverdueFilter'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const sel = document.getElementById('pvDetailTypeFilter');
+  if (sel) sel.value = '';
+  updateFilterHighlights();
+  // Hide dashboard, show upload screen
+  document.getElementById('dashboard').style.display       = 'none';
+  document.getElementById('uploadScreen').style.display    = '';
+  document.getElementById('dashTabBar').style.display      = 'none';
+  document.getElementById('topbarToolsGroup').style.display = 'none';
+  document.getElementById('topbarDataGroup').style.display  = 'none';
+  document.getElementById('scrollBtns').style.display       = 'none';
+  // Re-trigger drop zone pulse
+  const dz = document.getElementById('dropZone');
+  if (dz) {
+    dz.focus({ preventScroll: false });
+    dz.classList.remove('drop-zone-focus');
+    void dz.offsetWidth;
+    dz.classList.add('drop-zone-focus');
+  }
 }
 
 function openTRModal() {
@@ -1973,6 +2085,112 @@ function filterTable() {
   );
   currentPage = 1;
   renderTable();
+  updateFilterHighlights();
+}
+
+// ── CARD EXPAND MODAL ───────────────────────────────────────────────────────
+let _expandCardEl = null;
+
+function openCardModal(cardEl) {
+  _expandCardEl = cardEl;
+  const titleEl = cardEl.querySelector('.pivot-card-title span') || cardEl.querySelector('.pivot-card-title');
+  const title = titleEl ? titleEl.textContent.trim() : 'Card';
+  document.getElementById('cardModalTitle').textContent = title;
+  const body = document.getElementById('cardModalBody');
+  // Clone card content (everything after the title bar)
+  body.innerHTML = '';
+  [...cardEl.children].forEach(child => {
+    if (!child.classList.contains('pivot-card-title')) {
+      const clone = child.cloneNode(true);
+      // Remove height/overflow constraints for full display
+      clone.style.maxHeight = 'none';
+      clone.style.overflow  = 'visible';
+      body.appendChild(clone);
+    }
+  });
+  document.getElementById('cardModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCardModal() {
+  document.getElementById('cardModal').classList.remove('open');
+  document.body.style.overflow = '';
+  _expandCardEl = null;
+}
+
+function downloadCardExcel() {
+  const title = document.getElementById('cardModalTitle').textContent.trim() || 'Card';
+  const body  = document.getElementById('cardModalBody');
+  const table = body.querySelector('table');
+  if (!table) { alert('No table found in this card.'); return; }
+  const html = `<html><body>${table.outerHTML}</body></html>`;
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = title.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') + '.xls';
+  a.click();
+}
+
+function openCardWindow() {
+  if (!_expandCardEl) return;
+  const titleEl = _expandCardEl.querySelector('.pivot-card-title span') || _expandCardEl.querySelector('.pivot-card-title');
+  const title = titleEl ? titleEl.textContent.trim() : 'Card';
+  const body = document.getElementById('cardModalBody').innerHTML;
+  const safeTitle = title.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+  const styles = [...document.styleSheets].map(s => {
+    try { return [...s.cssRules].map(r => r.cssText).join('\n'); } catch(e) { return ''; }
+  }).join('\n');
+  const dlScript = `
+    function dlExcel() {
+      var tbl = document.querySelector('table');
+      if (!tbl) { alert('No table found.'); return; }
+      var html = '<html><body>' + tbl.outerHTML + '</body></html>';
+      var blob = new Blob([html], {type:'application/vnd.ms-excel'});
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = '${safeTitle}.xls'; a.click();
+    }`;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
+    <style>body{font-family:Aptos,'Segoe UI',Arial,sans-serif;padding:24px;background:#f8fafc;}
+    ${styles}</style></head><body>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <h2 style="font-size:15px;font-weight:700;color:#0f766e;margin:0;">${title}</h2>
+      <button onclick="dlExcel()" style="background:#0d9488;color:#fff;border:none;border-radius:7px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;">↓ Download Excel</button>
+    </div>
+    ${body}
+    <script>${dlScript}<\/script>
+    </body></html>`;
+  const win = window.open('', '_blank', 'width=1200,height=800,resizable=yes,scrollbars=yes');
+  if (win) { win.document.write(html); win.document.close(); }
+}
+
+// Keyboard: Escape closes modal
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCardModal(); });
+
+function updateFilterHighlights() {
+  // Dashboard search box
+  const sb = document.getElementById('searchBox');
+  if (sb) sb.classList.toggle('filter-active', sb.value.trim() !== '');
+
+  // Summary & Reporting pivot filters
+  const summaryFilters = [
+    { id: 'pvDetailFilter',      isSelect: false },
+    { id: 'pvDetailTypeFilter',  isSelect: true  },
+    { id: 'pvSalesPersonFilter', isSelect: false },
+    { id: 'pvOverdueFilter',     isSelect: false },
+  ];
+  let summaryHasFilter = false;
+  summaryFilters.forEach(({ id, isSelect }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const active = isSelect ? el.value !== '' : el.value.trim() !== '';
+    el.classList.toggle('filter-active', active);
+    if (active) summaryHasFilter = true;
+  });
+
+  // Mark the Summary & Reporting tab button
+  const summaryBtn = [...document.querySelectorAll('.dash-tab-btn')]
+    .find(b => b.textContent.includes('Summary'));
+  if (summaryBtn) summaryBtn.classList.toggle('has-filter', summaryHasFilter);
 }
 
 function sortBy(col) {
@@ -2400,7 +2618,10 @@ function buildTypeCards() {
     html += `
     <div class="pivot-card">
       <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:6px;">
-        <span style="color:#0f766e;">📂 ${type}</span>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <span style="color:#0f766e;">📂 ${type}</span>
+          <button class="card-expand-btn" onclick="openCardModal(this.closest('.pivot-card'))">⤢ Expand</button>
+        </div>
         <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
           <input type="search" placeholder="🔍 Filter..." oninput="filterTypeCard('${id}')"
             id="${id}_filter" style="font-size:11px;padding:3px 7px;border:1px solid #d1d5db;border-radius:4px;width:110px;color:#374151;" />
