@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>This is FinOps</title>
+  <title>AR Ageing Dashboard</title>
   <link rel="icon" type="image/png" href="https://www.ixigo.com/favicon.ico" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -190,14 +190,14 @@
 
     /* DASHBOARD TABS */
     .dash-tab-bar {
-      display: flex; gap: 4px; margin-bottom: 20px;
-      border-bottom: 2px solid #e5e7eb; padding-bottom: 0;
+      display: flex; gap: 4px; margin-bottom: 0;
+      border-bottom: none; padding-bottom: 0;
     }
     .dash-tab-btn {
-      padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+      padding: 6px 16px; font-size: 12px; font-weight: 600; cursor: pointer;
       border: none; background: rgba(255,255,255,0.12); color: #ffffff;
-      border-bottom: 3px solid transparent; margin-bottom: -2px;
-      transition: all 0.15s; border-radius: 6px 6px 0 0;
+      border-bottom: 3px solid transparent; margin-bottom: 0;
+      transition: all 0.15s; border-radius: 20px;
     }
     .dash-tab-btn.active { color: #ffffff; border-bottom-color: #ffffff; background: rgba(255,255,255,0.22); }
     .dash-tab-btn:hover:not(.active) { color: #ffffff; background: rgba(255,255,255,0.18); }
@@ -223,11 +223,26 @@
       box-shadow: var(--shadow-md);
       border: 1px solid var(--glass-border);
       overflow: auto;
+      transition: opacity 0.2s, box-shadow 0.2s;
     }
+    .pivot-card[draggable="true"] { cursor: default; }
+    .pivot-card.dnd-dragging { opacity: 0.35; box-shadow: none; }
+    .pivot-card.dnd-over-top    { border-top:    3px solid #0d9488 !important; }
+    .pivot-card.dnd-over-bottom { border-bottom: 3px solid #0d9488 !important; }
+    .pivot-card.dnd-over-left   { border-left:   3px solid #0d9488 !important; }
+    .pivot-card.dnd-over-right  { border-right:  3px solid #0d9488 !important; }
+    .drag-handle {
+      display: inline-flex; align-items: center; cursor: grab;
+      color: #d1d5db; font-size: 15px; line-height: 1;
+      padding: 0 0 0 4px; user-select: none; flex-shrink: 0;
+      margin-left: auto; transition: color 0.15s;
+    }
+    .drag-handle:hover { color: #0d9488; }
     .pivot-card-title {
       font-size: 13px; font-weight: 700; color: var(--gray-800);
       margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
     }
+    #qvTable td, #qvTable th { overflow:hidden; text-overflow:ellipsis; }
     .card-expand-btn {
       flex-shrink: 0;
       background: none; border: 1px solid #f97316; border-radius: 5px;
@@ -239,18 +254,19 @@
     #cardModal {
       display: none; position: fixed; inset: 0; z-index: 99999;
       background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
-      align-items: center; justify-content: center; padding: 20px;
+      align-items: stretch; justify-content: stretch; padding: 0;
     }
     #cardModal.open { display: flex; }
     #cardModalInner {
-      background: #fff; border-radius: 14px; width: 100%; max-width: 98vw;
-      max-height: 94vh; display: flex; flex-direction: column;
-      box-shadow: 0 24px 80px rgba(0,0,0,0.35); overflow: hidden;
+      background: #fff; border-radius: 0; width: 100vw; height: 100vh;
+      max-width: 100vw; max-height: 100vh;
+      display: flex; flex-direction: column;
+      box-shadow: none; overflow: hidden;
     }
     #cardModalHeader {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 20px; border-bottom: 1px solid #e5e7eb;
-      background: #0d9488; color: #fff; border-radius: 14px 14px 0 0;
+      background: #0d9488; color: #fff; border-radius: 0;
       font-size: 14px; font-weight: 700; gap: 12px; flex-shrink: 0;
     }
     #cardModalBody {
@@ -258,7 +274,7 @@
     }
     #cardModalBody .pivot-table { font-size: 12px; }
     #cardModalBody .pivot-table th, #cardModalBody .pivot-table td { padding: 8px 12px; }
-    .pivot-table { width: 100%; border-collapse: collapse; font-size: 10px; font-family: Aptos, 'Segoe UI', Arial, sans-serif; }
+    .pivot-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: Aptos, 'Segoe UI', Arial, sans-serif; }
     .pivot-table th {
       background: #0d9488; color: #fff; padding: 7px 10px; text-align: right;
       border: 1px solid #0f766e; white-space: nowrap; font-weight: 700;
@@ -430,6 +446,9 @@
 <!-- TOP BAR -->
 <div class="topbar">
   <div class="topbar-left">
+    <div id="indexToggleBtn" onclick="toggleIndexPanel()" title="Page Index"
+      style="display:none;width:32px;height:32px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);border-radius:8px;color:#fff;font-size:16px;cursor:pointer;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;"
+      onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">☰</div>
     <div class="logo"><img src="https://images.ixigo.com/image/upload/Header/aac1498d8f956aa99344f08773c70fb6-evncq.webp" alt="ixigo" onerror="this.parentElement.innerHTML='<span style=\'background:#00bfa5;color:white;font-weight:700;font-size:14px;padding:4px 10px;border-radius:6px\'>ixigo</span>'" /></div>
     <div class="project-title" style="overflow:hidden;max-width:520px;">
       <marquee id="dashTitleMarquee" scrollamount="3" behavior="scroll" direction="left" style="display:inline-block;white-space:nowrap;">
@@ -489,8 +508,26 @@
 window.addEventListener('load', function(){
   const el   = document.getElementById('scrollBtns');
   const handle = document.getElementById('scrollDragHandle');
-  document.getElementById('scrollUpBtn').addEventListener('click',   function(){ window.scrollBy({top:-window.innerHeight, behavior:'smooth'}); });
-  document.getElementById('scrollDownBtn').addEventListener('click', function(){ window.scrollBy({top: window.innerHeight, behavior:'smooth'}); });
+  document.getElementById('scrollUpBtn').addEventListener('click',   function(){ window.scrollBy({top:-300, behavior:'smooth'}); });
+  document.getElementById('scrollDownBtn').addEventListener('click', function(){ window.scrollBy({top: 300, behavior:'smooth'}); });
+
+  // Auto-hide pill when pointer is idle
+  el.style.transition = 'opacity 0.5s';
+  let _hideTimer = null;
+  function showPill() {
+    el.style.opacity = '1';
+    el.style.pointerEvents = 'auto';
+    clearTimeout(_hideTimer);
+    _hideTimer = setTimeout(function() {
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+    }, 2000);
+  }
+  document.addEventListener('mousemove', showPill, {passive:true});
+  document.addEventListener('touchstart', showPill, {passive:true});
+  // Start hidden
+  el.style.opacity = '0';
+  el.style.pointerEvents = 'none';
 
   let dragging = false, ox = 0, oy = 0, moved = false;
 
@@ -613,6 +650,33 @@ window.addEventListener('load', function(){
     </div>
   </div>
 </div>
+
+<!-- PAGE INDEX PANEL -->
+<!-- INDEX DROPDOWN (standalone fixed, opens below topbar) -->
+<div id="indexList" style="display:none;position:fixed;top:70px;left:14px;z-index:9995;background:rgba(255,255,255,0.96);backdrop-filter:blur(12px);border:1px solid rgba(13,148,136,0.25);border-radius:12px;box-shadow:0 4px 24px rgba(13,148,136,0.18);min-width:220px;overflow:hidden;font-family:inherit;">
+  <div style="background:#0d9488;color:#fff;font-size:11px;font-weight:700;padding:8px 14px;letter-spacing:0.05em;">📌 PAGE INDEX</div>
+  <!-- Dashboard tab -->
+  <div style="padding:6px 8px 2px;font-size:10px;font-weight:700;color:#0d9488;text-transform:uppercase;letter-spacing:0.06em;">📊 Dashboard</div>
+  <div class="idx-item" onclick="goToSection('main','kpiGrid')">📊 KPI Summary</div>
+  <div class="idx-item" onclick="goToSection('main','chartsGrid')">📈 Charts</div>
+  <div class="idx-item" onclick="goToSection('main','cardDataTable')">📋 Data Table</div>
+  <div class="idx-item" onclick="goToSection('main','quickViewCard')">📄 Pending Invoices</div>
+  <!-- Summary tab -->
+  <div style="padding:6px 8px 2px;margin-top:4px;font-size:10px;font-weight:700;color:#0d9488;text-transform:uppercase;letter-spacing:0.06em;border-top:1px solid #e5e7eb;">📋 Summary &amp; Reporting</div>
+  <div class="idx-item" onclick="goToSection('summary','cardDetailedPivot')">📑 Detailed Pivot</div>
+  <div class="idx-item" onclick="goToSection('summary','pvTypeCards')">📂 Type Cards</div>
+  <div class="idx-item" onclick="goToSection('summary','cardSalesPerson')">👤 Sales Person</div>
+  <div class="idx-item" onclick="goToSection('summary','cardOverdue')">⚠️ Overdue Analysis</div>
+  <div class="idx-item" onclick="goToSection('summary','cardCustomer')">🏢 Customer Ageing</div>
+</div>
+<style>
+  .idx-item {
+    padding: 7px 14px 7px 28px; font-size: 12px; color: #374151; cursor: pointer;
+    transition: background 0.12s, color 0.12s; white-space: nowrap;
+  }
+  .idx-item:hover { background: #f0fdfa; color: #0d9488; font-weight: 600; }
+  .idx-item.idx-active { background: #ccfbf1; color: #0f766e; font-weight: 700; }
+</style>
 
 <!-- CARD EXPAND MODAL -->
 <div id="cardModal" onclick="if(event.target===this)closeCardModal()">
@@ -743,7 +807,7 @@ window.addEventListener('load', function(){
   <div class="charts-grid" id="chartsGrid"></div>
 
   <!-- Data Table -->
-  <div class="table-card">
+  <div class="table-card" id="cardDataTable">
     <div class="report-header-line">Customer Ageing Report Detailed</div>
     <div class="table-card-header">
       <div class="table-card-title">📋 Data Table</div>
@@ -761,6 +825,7 @@ window.addEventListener('load', function(){
         </div>
         <button class="btn btn-outline btn-sm" onclick="downloadCSV()" title="Download as CSV">↓ CSV</button>
         <button class="btn btn-outline btn-sm" onclick="downloadExcel()" title="Download as Excel">↓ Excel</button>
+        <button class="btn btn-outline btn-sm" onclick="downloadCompiledReport()" title="Compile Detailed Pivot + DEBBANK + DEBFLIGHT + MEDIASALES OS into one Excel (5 sheets)" style="color:#1d4ed8;border-color:#1d4ed8;">↓ Compile</button>
         <button class="btn btn-outline btn-sm" onclick="openDataTableEmailModal()" style="color:#0d9488;border-color:#0d9488;">✉ Send</button>
       </div>
     </div>
@@ -777,13 +842,39 @@ window.addEventListener('load', function(){
   </div>
 
   <div class="status-bar" id="statusBar"></div>
+
+  <!-- Quick View Table -->
+  <div class="pivot-card" id="quickViewCard" style="display:none;margin-top:24px;">
+    <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <span>📄 Pending Invoices — Email</span>
+        <button class="card-expand-btn" onclick="openCardModal(this.closest('.pivot-card'))">⤢ Expand</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <input id="qvSearch" type="search" placeholder="🔍 Search..." oninput="onQVSearchInput()"
+          style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;width:140px;color:#374151;" />
+        <button id="qvFilterSelBtn" onclick="toggleQVSelFilter(this)" style="padding:4px 12px;background:#fff;color:#6b7280;border:1px solid #d1d5db;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:none;">☑ Selected Only</button>
+        <button onclick="copyQVTable(this)" style="padding:4px 12px;background:#f97316;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">⎘ Copy Table</button>
+        <button onclick="downloadQVExcel()" style="padding:4px 12px;background:#0d9488;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">↓ Download Report</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table id="qvTable" style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;">
+        <thead id="qvHead"></thead>
+        <tbody id="qvBody"></tbody>
+        <tfoot id="qvFoot"></tfoot>
+      </table>
+    </div>
+    <div id="qvFooter" style="font-size:11px;color:#6b7280;margin-top:8px;padding:4px 0;"></div>
+  </div>
+
   </div><!-- end tab-main -->
 
   <!-- ══ SUMMARY & REPORTING TAB ══ -->
   <div id="tab-summary" style="display:none;">
     <!-- Detailed Pivot: Type > Customer Name > Sales Person -->
     <div class="pivot-grid" style="grid-template-columns:1fr;">
-      <div class="pivot-card">
+      <div class="pivot-card" id="cardDetailedPivot">
         <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:16px;">
             <span>📑 Detailed Pivot — Type › Customer Name › Sales Person</span>
@@ -814,7 +905,7 @@ window.addEventListener('load', function(){
     <div id="pvTypeCards"></div>
     <!-- Ageing by Sales Person & Overdue Analysis -->
     <div class="pivot-grid" style="margin-top:4px;">
-      <div class="pivot-card">
+      <div class="pivot-card" id="cardSalesPerson">
         <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:16px;">
             <span>👤 Ageing by Sales Person</span>
@@ -835,7 +926,7 @@ window.addEventListener('load', function(){
         </div>
         <div id="pvSalesPerson"></div>
       </div>
-      <div class="pivot-card">
+      <div class="pivot-card" id="cardOverdue">
         <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:16px;">
             <span>⚠️ Overdue Analysis (&gt;90 Days) by Type</span>
@@ -859,7 +950,7 @@ window.addEventListener('load', function(){
     </div>
     <!-- Customer-wise Ageing -->
     <div class="pivot-grid" style="grid-template-columns:1fr;margin-top:4px;">
-      <div class="pivot-card">
+      <div class="pivot-card" id="cardCustomer">
         <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:16px;">
             <span>🏢 Customer-wise Ageing (Top 30 by Pending)</span>
@@ -1105,7 +1196,7 @@ document.addEventListener('keydown', e => {
     } else {
       if (document.body.style.display === 'none') {
         document.body.style.display = '';
-        document.title = 'This is FinOps';
+        document.title = 'AR Ageing Dashboard';
       }
     }
   }, 1000);
@@ -1148,6 +1239,8 @@ function clearDashboard() {
   // Clear DOM
   document.getElementById('kpiGrid').innerHTML    = '';
   document.getElementById('chartsGrid').innerHTML = '';
+  document.getElementById('quickViewCard').style.display = 'none';
+  _qvSortCol = ''; _qvSortDir = 'asc'; _qvSelectedRows = new Set(); _qvSelFilterOn = false; _qvVisiblePairs = [];
   document.getElementById('tableHead').innerHTML  = '';
   document.getElementById('tableBody').innerHTML  = '';
   document.getElementById('pageBtns').innerHTML   = '';
@@ -1423,137 +1516,302 @@ document.getElementById('smsModal').addEventListener('click', function(e) { if (
 function confirmSendSms() {
   const num = document.getElementById('smsModalInput').value.trim();
   if (!num) { alert('Please enter a mobile number.'); return; }
-  // Auto-download the card snip before opening WhatsApp
-  if (_smsSnipBlob) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(_smsSnipBlob);
-    a.download = `${_smsType}_Ageing_Snip.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+
+  // Capture all state BEFORE closing modal (closeSmsModal wipes _smsSnipBlob)
+  const snipBlob = _smsSnipBlob;
+  const smsType  = _smsType;
+  const body     = snipBlob ? _smsBody : _smsBody.replace('\n\n📎 Card snip attached.', '');
+  const clean    = num.replace(/\s+/g, '').replace(/^\+/, '');
+
+  closeSmsModal(); // safe now — we saved the blob above
+
+  if (snipBlob) {
+    // Copy card snip image to clipboard, then open WhatsApp Web
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': snipBlob })])
+      .then(() => {
+        // Also download the snip to local disk
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(snipBlob);
+        a.download = `${smsType}_Ageing_Snip.png`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+        window.open(`https://web.whatsapp.com/send?phone=${clean}&text=${encodeURIComponent(body)}`, '_blank');
+        showWAToast();
+      })
+      .catch(() => {
+        // Clipboard failed — download the image + open WhatsApp
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(snipBlob);
+        a.download = `${smsType}_Ageing_Snip.png`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => window.open(`https://web.whatsapp.com/send?phone=${clean}&text=${encodeURIComponent(body)}`, '_blank'), 600);
+        showAttachToast(`${smsType}_Ageing_Snip.png`);
+      });
+  } else {
+    setTimeout(() => window.open(`https://web.whatsapp.com/send?phone=${clean}&text=${encodeURIComponent(body)}`, '_blank'), 400);
   }
-  const body = _smsSnipBlob
-    ? _smsBody
-    : _smsBody.replace('\n\n📎 Card snip attached.', '');
-  closeSmsModal();
-  const clean = num.replace(/\s+/g, '');
-  setTimeout(function() {
-    window.open(`https://wa.me/${clean.replace(/^\+/, '')}?text=${encodeURIComponent(body)}`, '_blank');
-  }, 400);
+}
+
+function showWAToast() {
+  const existing = document.getElementById('waToast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'waToast';
+  toast.innerHTML = `
+    <span style="font-size:22px;">📋</span>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:#fff;">Card image copied to clipboard!</div>
+      <div style="font-size:11px;color:#dcfce7;margin-top:3px;">In WhatsApp Web — click the chat input box, then press <b>Ctrl + V</b> to paste the image</div>
+    </div>
+    <span onclick="this.parentElement.remove()" style="cursor:pointer;font-size:16px;color:#dcfce7;margin-left:8px;flex-shrink:0;">✕</span>`;
+  toast.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;align-items:center;gap:12px;background:#25d366;border:1px solid #128c7e;border-radius:12px;padding:14px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.25);min-width:360px;max-width:90vw;animation:slideUp 0.3s ease;';
+  document.body.appendChild(toast);
+  setTimeout(() => { if (toast.parentElement) toast.remove(); }, 12000);
 }
 
 function confirmSendMail() {
   const to = document.getElementById('emailModalInput').value.trim();
   if (!to) { alert('Please enter a recipient email.'); return; }
-  // Capture values before closeEmailModal() wipes them
-  const modalType      = _emailModalType;
-  const modalId        = _emailModalId;
-  const modalCardText  = _emailCardText;
-  const isDataTable    = _emailModalIsDataTable;
+  const modalType     = _emailModalType;
+  const modalId       = _emailModalId;
+  const isDataTable   = _emailModalIsDataTable;
   closeEmailModal();
-  const date = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  const date    = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
   const divider = '─'.repeat(60);
+
   if (isDataTable) {
-    // Snapshot current filtered+sorted data at the moment Send is clicked
-    const snapshot = [...filteredData];
-    const searchQ  = document.getElementById('searchBox')?.value?.trim() || '';
-    const totalAll = rawData.length;
-    const totalFilt = snapshot.length;
+    const snapshot   = [...filteredData];
+    const searchQ    = document.getElementById('searchBox')?.value?.trim() || '';
+    const totalAll   = rawData.length;
+    const totalFilt  = snapshot.length;
     const isFiltered = searchQ !== '' || totalFilt < totalAll;
-    // Download only the filtered snapshot
-    downloadExcelFromData(snapshot);
     const filterNote = isFiltered
       ? `Filter   : "${searchQ || 'custom filter'}" — ${totalFilt} of ${totalAll} records`
       : `Records  : ${totalAll} (all records)`;
-    const bodyText = [
-      `Hi,`,
-      ``,
-      `Please find the Customer Ageing Report — Data Table below.`,
-      `An Excel file has also been downloaded — please attach it before sending.`,
-      ``,
-      `Report   : Customer Ageing Report — Data Table`,
-      filterNote,
-      `Date     : ${date}`,
-      `Prepared : Nitesh`,
-      ``,
-      divider,
-      `Please refer to the attached Excel for full details.`,
-      divider,
-      ``,
-      `Regards,`,
-      `Nitesh`
-    ].join('\n');
-    const subject = encodeURIComponent(`Customer Ageing Report — Data Table${isFiltered ? ` (Filtered: ${totalFilt} records)` : ''} — ${date}`);
-    setTimeout(() => { window.location.href = `mailto:${to}?subject=${subject}&body=${encodeURIComponent(bodyText)}`; }, 800);
+    const subject  = `Customer Ageing Report — Data Table${isFiltered ? ` (Filtered: ${totalFilt} records)` : ''} — ${date}`;
+    const bodyText = [`Hi,`, ``, `Please find the Customer Ageing Report — Data Table attached.`, ``, `Report   : Customer Ageing Report — Data Table`, filterNote, `Date     : ${date}`, `Prepared : Nitesh`, ``, divider, `Please refer to the attached Excel for full details.`, divider, ``, `Regards,`, `Nitesh`].join('\n');
+    const blob = downloadExcelFromDataAsBlob(snapshot);
+    shareOrDownloadAndMail(blob, 'AR_Ageing_Report_Filtered.xls', subject, bodyText, to);
+
   } else if (modalType === 'DetailedPivot') {
-    // Detailed Pivot card — container is 'pvDetailed' directly
-    downloadPivotExcel('pvDetailed', 'Detailed_Pivot');
     const cardName = 'Detailed Pivot — Type › Customer Name › Sales Person';
-    const bodyText = [
-      `Hi,`,
-      ``,
-      `Please find the ${cardName} report attached.`,
-      `An Excel file has also been downloaded — please attach it before sending.`,
-      ``,
-      `Report   : ${cardName}`,
-      `Date     : ${date}`,
-      `Prepared : Nitesh`,
-      ``,
-      `Regards,`,
-      `Nitesh`
-    ].join('\n');
-    const subject = encodeURIComponent(`Detailed Pivot — Type › Customer › Sales Person — ${date}`);
-    setTimeout(() => { window.location.href = `mailto:${to}?subject=${subject}&body=${encodeURIComponent(bodyText)}`; }, 800);
+    const subject  = `Detailed Pivot — Type › Customer › Sales Person — ${date}`;
+    const bodyText = [`Hi,`, ``, `Please find the ${cardName} report attached.`, ``, `Report   : ${cardName}`, `Date     : ${date}`, `Prepared : Nitesh`, ``, `Regards,`, `Nitesh`].join('\n');
+    const blob = downloadPivotExcelAsBlob('pvDetailed');
+    if (blob) shareOrDownloadAndMail(blob, 'Detailed_Pivot.xls', subject, bodyText, to);
+
   } else {
-    // Pivot card — download pivot Excel then open mailto
-    downloadPivotExcel(modalId + '_table', modalType + '_Ageing');
-    const bodyText = [
-      `Hi,`,
-      ``,
-      `Please find the ${modalType} Ageing Report details below.`,
-      `An Excel file has also been downloaded — please attach it before sending.`,
-      ``,
-      `Report   : ${modalType} Ageing Report`,
-      `Date     : ${date}`,
-      `Prepared : Nitesh`,
-      ``,
-      `Regards,`,
-      `Nitesh`
-    ].join('\n');
-    const subject = encodeURIComponent(`${modalType} Ageing Report — ${date}`);
-    setTimeout(() => { window.location.href = `mailto:${to}?subject=${subject}&body=${encodeURIComponent(bodyText)}`; }, 800);
+    const subject  = `${modalType} Ageing Report — ${date}`;
+    const bodyText = [`Hi,`, ``, `Please find the ${modalType} Ageing Report attached.`, ``, `Report   : ${modalType} Ageing Report`, `Date     : ${date}`, `Prepared : Nitesh`, ``, `Regards,`, `Nitesh`].join('\n');
+    const blob = downloadPivotExcelAsBlob(modalId + '_table');
+    if (blob) shareOrDownloadAndMail(blob, `${modalType}_Ageing.xls`, subject, bodyText, to);
   }
 }
 
 function sendReportMail() {
-  const title = document.getElementById('dashTitle')?.textContent?.trim() || 'Customer Ageing Report';
-  const date  = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
-  const to    = 'nitesh@ixigo.com';
+  const title        = document.getElementById('dashTitle')?.textContent?.trim() || 'Customer Ageing Report';
+  const date         = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  const to           = 'nitesh@ixigo.com';
   const totalRecords = rawData ? rawData.length : 0;
-  // Step 1 — Download full report Excel
-  downloadExcel();
-  // Step 2 — Open mailto after short delay so the file saves first
-  const subject = encodeURIComponent(`${title} — ${date}`);
-  const bodyText = [
-    `Hi,`,
-    ``,
-    `Please find the Customer Ageing Report attached (Excel file auto-downloaded).`,
-    ``,
-    `Report   : ${title}`,
-    `Records  : ${totalRecords}`,
-    `Date     : ${date}`,
-    `Prepared : Nitesh`,
-    ``,
-    `─`.repeat(50),
-    `Please attach the downloaded Excel before sending.`,
-    `─`.repeat(50),
-    ``,
-    `Regards,`,
-    `Nitesh`
-  ].join('\n');
-  setTimeout(function() {
-    window.location.href = `mailto:${to}?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
+  const subject      = `${title} — ${date}`;
+  const bodyText     = [`Hi,`, ``, `Please find the Customer Ageing Report attached.`, ``, `Report   : ${title}`, `Records  : ${totalRecords}`, `Date     : ${date}`, `Prepared : Nitesh`, ``, `Regards,`, `Nitesh`].join('\n');
+  const blob = downloadExcelAsBlob();
+  shareOrDownloadAndMail(blob, 'AR Ageing Report.xls', subject, bodyText, to);
+}
+
+// ── DOWNLOAD + OUTLOOK MAIL HELPER ──────────────────────────────────────────
+function shareOrDownloadAndMail(blob, filename, subject, bodyText, to) {
+  // Step 1 — Download the file to Downloads folder
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+
+  // Step 2 — Copy table HTML from blob to clipboard (paste into email body)
+  blob.text().then(htmlContent => {
+    // Extract just the <table>...</table> portion for clean paste
+    const tableMatch = htmlContent.match(/<table[\s\S]*<\/table>/i);
+    const tableHtml  = tableMatch ? tableMatch[0] : htmlContent;
+    try {
+      navigator.clipboard.write([new ClipboardItem({
+        'text/html' : new Blob([tableHtml], { type: 'text/html' }),
+        'text/plain': new Blob([bodyText],  { type: 'text/plain' })
+      })]);
+    } catch(e) {
+      navigator.clipboard.writeText(bodyText).catch(() => {});
+    }
+  }).catch(() => {});
+
+  // Step 3 — Build email body with clear attach instruction at top
+  const attachNote = `[ACTION REQUIRED: Attach the downloaded file "${filename}" from your Downloads folder before sending]\n\n`;
+  const fullBody   = attachNote + bodyText;
+
+  // Step 4 — Show toast reminder (updated message)
+  showMailCopyToast(filename);
+
+  // Step 5 — Open Outlook compose via mailto: after file saves
+  setTimeout(() => {
+    // Use ms-outlook: protocol first (opens Outlook desktop directly on Windows)
+    const mailtoUrl = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
+    const outlookUrl = `ms-outlook:compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
+    // Try Outlook desktop protocol; fall back to mailto:
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = outlookUrl;
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      // Also open mailto: as reliable fallback (Outlook picks it up if set as default)
+      window.location.href = mailtoUrl;
+    }, 1200);
   }, 800);
+}
+
+function showAttachToast(filename) {
+  const existing = document.getElementById('attachToast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'attachToast';
+  toast.innerHTML = `
+    <span style="font-size:18px;">📎</span>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:#fff;">File downloaded — attach it to your email</div>
+      <div style="font-size:11px;color:#ccfbf1;margin-top:2px;">📄 <b>${filename}</b> — find it in your Downloads folder</div>
+    </div>
+    <span onclick="this.parentElement.remove()" style="cursor:pointer;font-size:16px;color:#ccfbf1;margin-left:8px;">✕</span>`;
+  toast.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;align-items:center;gap:12px;background:#0d9488;border:1px solid #0f766e;border-radius:12px;padding:14px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.25);min-width:340px;max-width:90vw;animation:slideUp 0.3s ease;';
+  if (!document.getElementById('attachToastStyle')) {
+    const s = document.createElement('style');
+    s.id = 'attachToastStyle';
+    s.textContent = '@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+    document.head.appendChild(s);
+  }
+  document.body.appendChild(toast);
+  setTimeout(() => { if (toast.parentElement) toast.remove(); }, 8000);
+}
+
+function showMailCopyToast(filename) {
+  const existing = document.getElementById('attachToast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'attachToast';
+  toast.innerHTML = `
+    <span style="font-size:20px;">📋</span>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:#fff;">Table copied to clipboard + file downloaded!</div>
+      <div style="font-size:11px;color:#ccfbf1;margin-top:3px;">In Outlook — press <b>Ctrl+V</b> to paste the table into email body</div>
+      <div style="font-size:11px;color:#ccfbf1;margin-top:1px;">📎 Attach <b>${filename}</b> from your Downloads folder</div>
+    </div>
+    <span onclick="this.parentElement.remove()" style="cursor:pointer;font-size:16px;color:#ccfbf1;margin-left:8px;flex-shrink:0;">✕</span>`;
+  toast.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;align-items:center;gap:12px;background:#0d9488;border:1px solid #0f766e;border-radius:12px;padding:14px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.25);min-width:380px;max-width:90vw;animation:slideUp 0.3s ease;';
+  if (!document.getElementById('attachToastStyle')) {
+    const s = document.createElement('style');
+    s.id = 'attachToastStyle';
+    s.textContent = '@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+    document.head.appendChild(s);
+  }
+  document.body.appendChild(toast);
+  setTimeout(() => { if (toast.parentElement) toast.remove(); }, 10000);
+}
+
+function downloadExcelAsBlob() {
+  const startCol = headers.findIndex(h => h.trim().toLowerCase() === 'document amount');
+  const endCol   = headers.findIndex(h => h.trim().toLowerCase() === 'validation');
+  const sumRange = startCol !== -1 ? headers.slice(startCol, endCol !== -1 ? endCol + 1 : undefined) : [];
+  const skipCols = ['outstanding days', 'due date'];
+  const baseCell = `border:1px solid #d1d5db;padding:6px 10px;white-space:nowrap;font-family:Aptos,Arial,sans-serif;font-size:10pt;`;
+  const thStyle  = `${baseCell}background:#0d9488;color:#ffffff;font-weight:bold;text-align:left;`;
+  const gtStyle  = `${baseCell}background:#0d9488;color:#ffffff;font-weight:bold;`;
+  let rows = `<tr>${headers.map(h => `<th style="${thStyle}">${h}</th>`).join('')}</tr>`;
+  filteredData.forEach((row, i) => {
+    const bg = i % 2 === 0 ? '#ffffff' : '#f0f4ff';
+    rows += `<tr>${headers.map(h => {
+      const val = row[h] ?? ''; const isOd = odStyle(h, val) !== '';
+      return `<td style="${baseCell}background:${bg};${isOd?'color:#dc2626;font-weight:bold;':''}">${val}</td>`;
+    }).join('')}</tr>`;
+  });
+  const gtCells = headers.map((h, i) => {
+    if (i === 0) return `<td style="${gtStyle}">Grand Total</td>`;
+    if (sumRange.includes(h) && !skipCols.includes(h.trim().toLowerCase())) {
+      const sum = parseFloat(filteredData.reduce((s, r) => s + (parseFloat(r[h]) || 0), 0).toFixed(2));
+      return `<td style="${gtStyle}text-align:right;">${sum.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>`;
+    }
+    return `<td style="${gtStyle}"></td>`;
+  }).join('');
+  rows += `<tr>${gtCells}</tr>`;
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1" style="border-collapse:collapse;">${rows}</table></body></html>`;
+  return new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+}
+
+function downloadExcelFromDataAsBlob(data) {
+  const startCol = headers.findIndex(h => h.trim().toLowerCase() === 'document amount');
+  const endCol   = headers.findIndex(h => h.trim().toLowerCase() === 'validation');
+  const sumRange = startCol !== -1 ? headers.slice(startCol, endCol !== -1 ? endCol + 1 : undefined) : [];
+  const skipCols = ['outstanding days', 'due date'];
+  const baseCell = `border:1px solid #d1d5db;padding:6px 10px;white-space:nowrap;font-family:Aptos,Arial,sans-serif;font-size:10pt;`;
+  const thStyle  = `${baseCell}background:#0d9488;color:#ffffff;font-weight:bold;text-align:left;`;
+  const gtStyle  = `${baseCell}background:#0d9488;color:#ffffff;font-weight:bold;`;
+  let rows = `<tr>${headers.map(h => `<th style="${thStyle}">${h}</th>`).join('')}</tr>`;
+  data.forEach((row, i) => {
+    const bg = i % 2 === 0 ? '#ffffff' : '#f0f4ff';
+    rows += `<tr>${headers.map(h => {
+      const val = row[h] ?? ''; const isOd = odStyle(h, val) !== '';
+      return `<td style="${baseCell}background:${bg};${isOd?'color:#dc2626;font-weight:bold;':''}">${val}</td>`;
+    }).join('')}</tr>`;
+  });
+  const gtCells = headers.map((h, i) => {
+    if (i === 0) return `<td style="${gtStyle}">Grand Total</td>`;
+    if (sumRange.includes(h) && !skipCols.includes(h.trim().toLowerCase())) {
+      const sum = parseFloat(data.reduce((s, r) => s + (parseFloat(r[h]) || 0), 0).toFixed(2));
+      return `<td style="${gtStyle}text-align:right;">${sum.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>`;
+    }
+    return `<td style="${gtStyle}"></td>`;
+  }).join('');
+  rows += `<tr>${gtCells}</tr>`;
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1" style="border-collapse:collapse;">${rows}</table></body></html>`;
+  return new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+}
+
+function downloadPivotExcelAsBlob(containerId) {
+  const wrapper = document.getElementById(containerId);
+  const tbl = wrapper ? wrapper.querySelector('table') : null;
+  if (!tbl) return null;
+  let rows = '';
+  tbl.querySelectorAll('tr').forEach(tr => {
+    if (tr.style.display === 'none') return;
+    const trBg = tr.style.background || tr.style.backgroundColor || '';
+    const trColor = tr.style.color || ''; const trCs = tr.style.cssText || '';
+    const isGreenRow = trBg.includes('#0d9488') || trCs.includes('#0d9488');
+    const isSubtotal = trBg.includes('gradient') || trBg.includes('#ccfbf1');
+    const isTfoot = tr.closest('tfoot') !== null; const isThead = tr.closest('thead') !== null;
+    let cells = '';
+    tr.querySelectorAll('th,td').forEach(cell => {
+      const tag = cell.tagName.toLowerCase();
+      const colspan = cell.getAttribute('colspan') ? ` colspan="${cell.getAttribute('colspan')}"` : '';
+      const cs = cell.style.cssText || '';
+      const align = /text-align:([^;]+)/.exec(cs)?.[1] || 'left';
+      let style = `border:1px solid #ccc;padding:6px 10px;white-space:nowrap;font-family:Aptos,Arial,sans-serif;font-size:10pt;text-align:${align};`;
+      if (isThead || tag === 'th') style += 'background:#0d9488;color:#ffffff;font-weight:bold;';
+      else if (isTfoot || isGreenRow) style += 'background:#0d9488;color:#ffffff;font-weight:bold;';
+      else if (isSubtotal) { style += 'background:#ccfbf1;color:#0f766e;font-weight:bold;border-top:2px solid #0d9488;border-bottom:2px solid #0d9488;'; if (cs.includes('border-left')) style += 'border-left:4px solid #0d9488;'; }
+      else {
+        const bg = /background:\s*([^;]+)/.exec(tr.style.cssText||'')?.[1] || /background:\s*([^;]+)/.exec(cs)?.[1] || '#ffffff';
+        style += `background:${bg};`;
+        if (cell.style.color === 'rgb(107, 114, 128)') style += 'color:#6b7280;';
+        const strong = cell.querySelector('strong');
+        if (strong && (strong.style.color === 'rgb(13, 148, 136)' || strong.style.color === '#0d9488')) style += 'color:#0d9488;font-weight:bold;';
+        if (cell.style.color === 'rgb(220, 38, 38)') style += 'color:#dc2626;font-weight:bold;';
+        if (cs.includes('font-weight:700') || cs.includes('font-weight: 700')) style += 'font-weight:bold;';
+      }
+      const text = cell.textContent.trim().replace(/^🔴\s*/,'').replace(/^⟩\s*/,'');
+      cells += `<${tag}${colspan} style="${style}">${text}</${tag}>`;
+    });
+    rows += `<tr>${cells}</tr>`;
+  });
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1" style="border-collapse:collapse;">${rows}</table></body></html>`;
+  return new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
 }
 
 function showDashboard() {
@@ -1563,6 +1821,7 @@ function showDashboard() {
   document.getElementById('topbarToolsGroup').style.display = '';
   document.getElementById('topbarDataGroup').style.display  = '';
   document.getElementById('scrollBtns').style.display = 'flex';
+  document.getElementById('indexToggleBtn').style.display = 'flex';
   // Reset to main tab on every new load
   document.getElementById('tab-main').style.display       = '';
   document.getElementById('tab-summary').style.display    = 'none';
@@ -1572,6 +1831,7 @@ function showDashboard() {
 }
 
 function clearScreen() {
+  if (!confirm('Are you sure you want to clear the screen?\nAll loaded data will be removed and you will return to the upload screen.')) return;
   // Reset all data
   rawData = []; filteredData = []; headers = [];
   currentPage = 1; sortCol = ''; sortAsc = true;
@@ -1592,6 +1852,8 @@ function clearScreen() {
   document.getElementById('topbarToolsGroup').style.display = 'none';
   document.getElementById('topbarDataGroup').style.display  = 'none';
   document.getElementById('scrollBtns').style.display       = 'none';
+  document.getElementById('indexToggleBtn').style.display   = 'none';
+  document.getElementById('indexList').style.display        = 'none';
   // Re-trigger drop zone pulse
   const dz = document.getElementById('dropZone');
   if (dz) {
@@ -1949,6 +2211,7 @@ function renderCharts() {
 
   buildChart('chart1', 'bar', labels, values, chartLabel, palette);
   buildAgingByTypeChart();
+  renderQuickView();
 }
 
 function buildAgingByTypeChart() {
@@ -1979,7 +2242,7 @@ function buildAgingByTypeChart() {
     `<${tag} style="${style}">${content}</${tag}>`;
 
   // Header
-  let html = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:10px;font-family:Aptos,Arial,sans-serif;border:1px solid #e5e7eb;">
+  let html = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;font-family:Aptos,Arial,sans-serif;border:1px solid #e5e7eb;">
     <thead><tr style="background:#0d9488;">
       <th style="padding:8px 10px;color:#fff;border:1px solid #0f766e;text-align:left;white-space:nowrap;position:sticky;top:0;left:0;z-index:5;background:#0d9488;">Type</th>
       <th style="padding:8px 10px;color:#fff;border:1px solid #0f766e;text-align:right;white-space:nowrap;position:sticky;top:0;">Total</th>
@@ -2052,6 +2315,343 @@ function buildChart(id, type, labels, data, label, colors) {
   });
 }
 
+// ── QUICK VIEW TABLE ────────────────────────────────────────────────────────
+const QV_COLS = ['Customer Name','Document No.','Document Date','Document Amount','Amount Rcd.','Amount Pending','Outstanding Days','Due Date'];
+const QV_PAGE_SIZE = 10;
+let _qvSortCol = '', _qvSortDir = 'asc';
+let _qvSelectedRows = new Set();   // rawData indices of selected rows
+let _qvSelFilterOn  = false;       // true = show selected rows only
+let _qvVisiblePairs = [];          // [[rawIdx, row], …] currently rendered
+
+function getQVHeaders() {
+  return QV_COLS.map(qc => headers.find(h => h.trim().toLowerCase() === qc.trim().toLowerCase()) || null).filter(Boolean);
+}
+
+function buildQVRows(rows, qvCols) {
+  const amtCols = new Set(['document amount','amount rcd.','amount pending']);
+  const fmtAmt  = v => { const n = parseFloat(String(v).replace(/,/g,'')); return isNaN(n) ? (v || '—') : '₹ ' + n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  const apCol   = qvCols.find(c => c.trim().toLowerCase() === 'amount pending');
+  return rows.map((r, i) => {
+    const bg = i % 2 === 0 ? '#fff' : '#f0fdfa';
+    const dataCells = qvCols.map(c => {
+      const raw = r[c] ?? '';
+      const cl  = c.trim().toLowerCase();
+      let val = raw, align = 'left', color = '';
+      if (amtCols.has(cl)) { val = fmtAmt(raw); align = 'right'; color = cl === 'amount pending' && parseFloat(String(raw).replace(/,/g,'')) > 0 ? 'color:#dc2626;font-weight:700;' : 'font-weight:600;'; }
+      else if (cl === 'outstanding days') { align = 'right'; color = parseInt(raw) > 90 ? 'color:#dc2626;font-weight:700;' : ''; }
+      const ws = cl === 'document no.' ? 'white-space:normal;word-break:break-all;' : 'white-space:nowrap;';
+      return `<td style="padding:6px 10px;border:1px solid #e5e7eb;background:${bg};text-align:${align};font-size:20px;${ws}${color}">${val}</td>`;
+    }).join('');
+    const nr = apCol ? (parseFloat(String(r[apCol]||0).replace(/,/g,''))||0) / 1.18 * 1.16 : 0;
+    const nrCell = `<td style="padding:6px 10px;border:1px solid #e5e7eb;background:${bg};text-align:right;font-size:20px;white-space:nowrap;color:#1d4ed8;font-weight:700;">${fmtAmt(nr.toFixed(2))}</td>`;
+    return `<tr style="background:${bg};">${dataCells}${nrCell}</tr>`;
+  }).join('');
+}
+
+function buildQVRowsWithCheckbox(pairs, qvCols) {
+  const amtCols = new Set(['document amount','amount rcd.','amount pending']);
+  const fmtAmt  = v => { const n = parseFloat(String(v).replace(/,/g,'')); return isNaN(n) ? (v || '—') : '₹ ' + n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  const cbTd    = 'padding:4px 8px;border:1px solid #e5e7eb;text-align:center;vertical-align:middle;';
+  const apCol   = qvCols.find(c => c.trim().toLowerCase() === 'amount pending');
+  return pairs.map(([rawIdx, r], i) => {
+    const bg      = i % 2 === 0 ? '#fff' : '#f0fdfa';
+    const checked = _qvSelectedRows.has(rawIdx) ? 'checked' : '';
+    const cbCell  = `<td style="${cbTd}background:${bg};"><input type="checkbox" ${checked} style="cursor:pointer;accent-color:#f97316;width:14px;height:14px;" onchange="qvToggleRow(${rawIdx})"></td>`;
+    const dataCells = qvCols.map(c => {
+      const raw = r[c] ?? '';
+      const cl  = c.trim().toLowerCase();
+      let val = raw, align = 'left', color = '';
+      if (amtCols.has(cl)) { val = fmtAmt(raw); align = 'right'; color = cl === 'amount pending' && parseFloat(String(raw).replace(/,/g,'')) > 0 ? 'color:#dc2626;font-weight:700;' : 'font-weight:600;'; }
+      else if (cl === 'outstanding days') { align = 'right'; color = parseInt(raw) > 90 ? 'color:#dc2626;font-weight:700;' : ''; }
+      const ws = cl === 'document no.' ? 'white-space:normal;word-break:break-all;' : 'white-space:nowrap;';
+      return `<td style="padding:6px 10px;border:1px solid #e5e7eb;background:${bg};text-align:${align};font-size:12px;${ws}${color}">${val}</td>`;
+    }).join('');
+    const nr = apCol ? (parseFloat(String(r[apCol]||0).replace(/,/g,''))||0) / 1.18 * 1.16 : 0;
+    const nrCell = `<td style="padding:6px 10px;border:1px solid #e5e7eb;background:${bg};text-align:right;font-size:12px;white-space:nowrap;color:#1d4ed8;font-weight:700;">${fmtAmt(nr.toFixed(2))}</td>`;
+    return `<tr style="background:${bg};">${cbCell}${dataCells}${nrCell}</tr>`;
+  }).join('');
+}
+
+function renderQuickView() {
+  const card = document.getElementById('quickViewCard');
+  if (!rawData.length) { card.style.display = 'none'; return; }
+  const qvCols = getQVHeaders();
+  if (!qvCols.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  const q = (document.getElementById('qvSearch')?.value || '').trim().toLowerCase();
+
+  // Build pairs [rawIdx, row] so we can track selections by rawData index
+  let allPairs = rawData.map((r, i) => [i, r]).filter(([, r]) => !q || qvCols.some(c => String(r[c] ?? '').toLowerCase().includes(q)));
+
+  // Sort pairs
+  if (_qvSortCol) {
+    const amtS = new Set(['document amount','amount rcd.','amount pending','outstanding days']);
+    allPairs = [...allPairs].sort(([, a], [, b]) => {
+      const cl = _qvSortCol.trim().toLowerCase();
+      let av = a[_qvSortCol] ?? '', bv = b[_qvSortCol] ?? '';
+      if (amtS.has(cl)) {
+        av = parseFloat(String(av).replace(/,/g,'')) || 0;
+        bv = parseFloat(String(bv).replace(/,/g,'')) || 0;
+      } else {
+        av = String(av).toLowerCase(); bv = String(bv).toLowerCase();
+      }
+      return _qvSortDir === 'asc' ? (av > bv ? 1 : av < bv ? -1 : 0) : (av < bv ? 1 : av > bv ? -1 : 0);
+    });
+  }
+
+  // Filter to selected only (if mode is on)
+  if (_qvSelFilterOn) allPairs = allPairs.filter(([i]) => _qvSelectedRows.has(i));
+
+  const visiblePairs = allPairs.slice(0, QV_PAGE_SIZE);
+  _qvVisiblePairs = visiblePairs;
+
+  // Show / hide "Selected Only" button
+  const selBtn = document.getElementById('qvFilterSelBtn');
+  if (selBtn) selBtn.style.display = _qvSelectedRows.size > 0 ? '' : 'none';
+
+  // Set proportional column widths so table fits within screen (table-layout:fixed)
+  const colWidthMap = {
+    'customer name': '16%', 'document no.': '13%', 'document date': '8%',
+    'document amount': '10%', 'amount rcd.': '8%', 'amount pending': '10%',
+    'outstanding days': '7%', 'due date': '7%'
+  };
+  const tbl = document.getElementById('qvTable');
+  let cg = tbl.querySelector('colgroup');
+  if (!cg) { cg = document.createElement('colgroup'); tbl.prepend(cg); }
+  cg.innerHTML = `<col style="width:3%">` +
+    qvCols.map(c => `<col style="width:${colWidthMap[c.trim().toLowerCase()] || '9%'}">`).join('') +
+    `<col style="width:10%">`;
+
+  // Header with sort indicators + checkbox column
+  const thBase = 'padding:8px 10px;background:#0d9488;color:#fff;font-weight:700;white-space:nowrap;border:1px solid #0f766e;text-align:left;position:sticky;top:0;z-index:3;font-size:12px;cursor:pointer;user-select:none;';
+  const thCb   = 'padding:6px 8px;background:#0d9488;border:1px solid #0f766e;text-align:center;position:sticky;top:0;z-index:3;';
+  const allSel = visiblePairs.length > 0 && visiblePairs.every(([i]) => _qvSelectedRows.has(i));
+  document.getElementById('qvHead').innerHTML = `<tr>
+    <th style="${thCb}"><input type="checkbox" id="qvChkAll" ${allSel?'checked':''} style="cursor:pointer;accent-color:#f97316;width:14px;height:14px;" onchange="qvToggleAll(this)"></th>
+    ${qvCols.map(c => {
+      const isActive = _qvSortCol === c;
+      const arrow = isActive ? (_qvSortDir === 'asc' ? ' ↑' : ' ↓') : ' ↑&nbsp;&nbsp;↓';
+      const bg = isActive ? 'background:#0f766e;' : '';
+      return `<th style="${thBase}${bg}" onclick="qvSort('${c.replace(/'/g,"\\'")}')">
+        ${c}<span style="color:#f97316;opacity:${isActive?1:0.7};font-size:10px;font-weight:900;">${arrow}</span></th>`;
+    }).join('')}
+    <th style="${thBase}">Net Receivable<span style="color:#93c5fd;font-size:10px;font-weight:900;"> ₹</span></th>
+  </tr>`;
+
+  // Set indeterminate state for select-all checkbox (can't be set via HTML attr)
+  const allCb = document.getElementById('qvChkAll');
+  if (allCb) {
+    const someSel = visiblePairs.some(([i]) => _qvSelectedRows.has(i));
+    allCb.indeterminate = someSel && !allSel;
+  }
+
+  document.getElementById('qvBody').innerHTML = buildQVRowsWithCheckbox(visiblePairs, qvCols);
+
+  // Grand Total row in tfoot (checkbox placeholder + data cols)
+  const visibleRows = visiblePairs.map(([, r]) => r);
+  const amtColsSet = new Set(['document amount','amount rcd.','amount pending']);
+  const fmtAmt = v => { const n = parseFloat(String(v).replace(/,/g,'')); return isNaN(n) ? '' : '₹ ' + n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  const ftStyle = 'padding:8px 10px;border:1px solid #0f766e;background:#0d9488;color:#fff;font-weight:700;font-size:12px;white-space:nowrap;';
+  const cbFtStyle = 'padding:8px;border:1px solid #0f766e;background:#0d9488;';
+  const apColName = qvCols.find(c => c.trim().toLowerCase() === 'amount pending');
+  const nrSum = visibleRows.reduce((s, r) => s + (apColName ? (parseFloat(String(r[apColName]||0).replace(/,/g,''))||0) / 1.18 * 1.16 : 0), 0);
+  document.getElementById('qvFoot').innerHTML = `<tr>
+    <td style="${cbFtStyle}"></td>
+    ${qvCols.map((c, i) => {
+      const cl = c.trim().toLowerCase();
+      if (i === 0) return `<td style="${ftStyle}">Grand Total</td>`;
+      if (amtColsSet.has(cl)) {
+        const sum = visibleRows.reduce((s, r) => s + (parseFloat(String(r[c]||0).replace(/,/g,''))||0), 0);
+        return `<td style="${ftStyle}text-align:right;">${fmtAmt(sum)}</td>`;
+      }
+      return `<td style="${ftStyle}"></td>`;
+    }).join('')}
+    <td style="${ftStyle}text-align:right;color:#93c5fd;">${fmtAmt(nrSum.toFixed(2))}</td>
+  </tr>`;
+
+  // Footer: record count
+  const totalUnfiltered = rawData.map((r,i)=>[i,r]).filter(([,r]) => !q || qvCols.some(c => String(r[c]??'').toLowerCase().includes(q))).length;
+  const footer = document.getElementById('qvFooter');
+  const selInfo = _qvSelectedRows.size > 0 ? ` &nbsp;·&nbsp; <b style="color:#f97316;">${_qvSelectedRows.size}</b> selected` : '';
+  footer.innerHTML = `<span style="color:#6b7280;">Showing <b>${visiblePairs.length}</b> of <b>${_qvSelFilterOn ? _qvSelectedRows.size : totalUnfiltered}</b> records${selInfo}</span>`;
+}
+
+function qvSort(col) {
+  if (_qvSortCol === col) _qvSortDir = _qvSortDir === 'asc' ? 'desc' : 'asc';
+  else { _qvSortCol = col; _qvSortDir = 'asc'; }
+  renderQuickView();
+}
+
+function qvToggleRow(rawIdx) {
+  if (_qvSelectedRows.has(rawIdx)) _qvSelectedRows.delete(rawIdx);
+  else _qvSelectedRows.add(rawIdx);
+  // If filter-on and row was deselected, turn off filter mode when nothing left
+  if (_qvSelFilterOn && _qvSelectedRows.size === 0) {
+    _qvSelFilterOn = false;
+    const sb = document.getElementById('qvFilterSelBtn');
+    if (sb) { sb.style.background = '#fff'; sb.style.color = '#6b7280'; }
+  }
+  renderQuickView();
+}
+
+function qvToggleAll(cb) {
+  if (cb.checked) {
+    _qvVisiblePairs.forEach(([i]) => _qvSelectedRows.add(i));
+  } else {
+    _qvVisiblePairs.forEach(([i]) => _qvSelectedRows.delete(i));
+    if (_qvSelFilterOn && _qvSelectedRows.size === 0) {
+      _qvSelFilterOn = false;
+      const sb = document.getElementById('qvFilterSelBtn');
+      if (sb) { sb.style.background = '#fff'; sb.style.color = '#6b7280'; }
+    }
+  }
+  renderQuickView();
+}
+
+function onQVSearchInput() {
+  // Reset all selection state when search changes so full data always restores on clear
+  _qvSelectedRows.clear();
+  _qvSelFilterOn = false;
+  const sb = document.getElementById('qvFilterSelBtn');
+  if (sb) {
+    sb.style.display     = 'none';
+    sb.style.background  = '#fff';
+    sb.style.color       = '#6b7280';
+    sb.style.borderColor = '#d1d5db';
+  }
+  renderQuickView();
+}
+
+function toggleQVSelFilter(btn) {
+  if (_qvSelectedRows.size === 0) return;
+  _qvSelFilterOn = !_qvSelFilterOn;
+  btn.style.background  = _qvSelFilterOn ? '#f97316' : '#fff';
+  btn.style.color       = _qvSelFilterOn ? '#fff'    : '#6b7280';
+  btn.style.borderColor = _qvSelFilterOn ? '#f97316' : '#d1d5db';
+  renderQuickView();
+}
+
+function copyQVTable(btn) {
+  const qvCols = getQVHeaders();
+  if (!qvCols.length || !rawData.length) return;
+  // Use only selected rows if any are selected, otherwise all rows
+  const exportRows = _qvSelectedRows.size > 0
+    ? rawData.filter((_, i) => _qvSelectedRows.has(i))
+    : rawData;
+  const amtCols  = new Set(['document amount','amount rcd.','amount pending']);
+  const fmtAmt   = v => { const n = parseFloat(String(v).replace(/,/g,'')); return isNaN(n) ? '' : '₹ ' + n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  const ftStyle  = 'padding:8px 10px;background:#0d9488;color:#fff;font-weight:700;border:1px solid #0f766e;font-size:20px;white-space:nowrap;';
+  const thStyle  = 'padding:8px 10px;background:#0d9488;color:#fff;font-weight:700;border:1px solid #0f766e;font-size:20px;white-space:nowrap;';
+  const apCol    = qvCols.find(c => c.trim().toLowerCase() === 'amount pending');
+  const head     = `<tr>${qvCols.map(c => `<th style="${thStyle}">${c}</th>`).join('')}<th style="${thStyle}">Net Receivable</th></tr>`;
+  const nrTotal  = exportRows.reduce((s, r) => s + (apCol ? (parseFloat(String(r[apCol]||0).replace(/,/g,''))||0) / 1.18 * 1.16 : 0), 0);
+  const footCells = qvCols.map((c, i) => {
+    const cl = c.trim().toLowerCase();
+    if (i === 0) return `<td style="${ftStyle}">Grand Total</td>`;
+    if (amtCols.has(cl)) {
+      const sum = exportRows.reduce((s, r) => s + (parseFloat(String(r[c]||0).replace(/,/g,''))||0), 0);
+      return `<td style="${ftStyle}text-align:right;">${fmtAmt(sum)}</td>`;
+    }
+    return `<td style="${ftStyle}"></td>`;
+  }).join('') + `<td style="${ftStyle}text-align:right;">${fmtAmt(nrTotal.toFixed(2))}</td>`;
+  const foot = `<tr>${footCells}</tr>`;
+  const html = `<table style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;">${head}${buildQVRows(exportRows, qvCols)}${foot}</table>`;
+
+  // Plain-text: data rows + Grand Total line
+  const gtTextCells = qvCols.map((c, i) => {
+    const cl = c.trim().toLowerCase();
+    if (i === 0) return 'Grand Total';
+    if (amtCols.has(cl)) {
+      const sum = exportRows.reduce((s, r) => s + (parseFloat(String(r[c]||0).replace(/,/g,''))||0), 0);
+      return fmtAmt(sum);
+    }
+    return '';
+  });
+  gtTextCells.push(fmtAmt(nrTotal.toFixed(2)));
+  const text = [[...qvCols, 'Net Receivable'].join('\t'),
+    ...exportRows.map(r => {
+      const ap = apCol ? (parseFloat(String(r[apCol]||0).replace(/,/g,''))||0) / 1.18 * 1.16 : 0;
+      return [...qvCols.map(c => r[c] ?? ''), fmtAmt(ap.toFixed(2))].join('\t');
+    }),
+    gtTextCells.join('\t')
+  ].join('\n');
+  try {
+    navigator.clipboard.write([new ClipboardItem({
+      'text/html': new Blob([html], {type:'text/html'}),
+      'text/plain': new Blob([text], {type:'text/plain'})
+    })]).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied!'; btn.style.background = '#16a34a';
+      setTimeout(() => { btn.textContent = orig; btn.style.background = '#f97316'; }, 2000);
+    });
+  } catch(e) {
+    // Fallback: copy plain text
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied!'; btn.style.background = '#16a34a';
+      setTimeout(() => { btn.textContent = orig; btn.style.background = '#f97316'; }, 2000);
+    });
+  }
+}
+
+function downloadQVExcel() {
+  const qvCols = getQVHeaders();
+  if (!qvCols.length || !rawData.length) return;
+  const title  = document.getElementById('dashTitle')?.textContent?.trim() || 'Customer Ageing Report';
+  const date   = new Date().toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+  const fmtAmt = v => { const n = parseFloat(String(v).replace(/,/g,'')); return isNaN(n) ? (v || '') : n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  const amtCols = new Set(['Document Amount','Amount Rcd.','Amount Pending'].map(x => x.toLowerCase()));
+
+  // Use only selected rows if any are selected, otherwise all rows
+  const exportRows = _qvSelectedRows.size > 0
+    ? rawData.filter((_, i) => _qvSelectedRows.has(i))
+    : rawData;
+  const isFiltered = _qvSelectedRows.size > 0;
+
+  const thS  = 'background:#0d9488;color:#fff;font-weight:700;padding:9px 12px;border:1px solid #0f766e;white-space:nowrap;font-size:12px;';
+  const tdS  = (bg, right, red) => `padding:7px 12px;border:1px solid #e5e7eb;background:${bg};font-size:11px;text-align:${right?'right':'left'};${red?'color:#dc2626;font-weight:700;':''}`;
+
+  const apColX = qvCols.find(c => c.trim().toLowerCase() === 'amount pending');
+  const totalCols = qvCols.length + 1;
+  let html = `<html><head><meta charset="utf-8"></head><body>
+  <table style="width:100%;border-collapse:collapse;font-family:Calibri,Arial,sans-serif;">
+    <tr><td colspan="${totalCols}" style="background:#0f766e;color:#fff;font-size:15px;font-weight:700;padding:12px 16px;border:none;">${title} — Pending Invoices${isFiltered ? ' (Selected)' : ''}</td></tr>
+    <tr><td colspan="${totalCols}" style="background:#f0fdfa;color:#6b7280;font-size:11px;padding:6px 16px;border:none;">Generated: ${date} &nbsp;|&nbsp; ${isFiltered ? `Selected Records: ${exportRows.length} of ${rawData.length}` : `Total Records: ${rawData.length}`}</td></tr>
+    <tr><td colspan="${totalCols}" style="padding:4px;border:none;"></td></tr>
+    <tr>${qvCols.map(c => `<th style="${thS}">${c}</th>`).join('')}<th style="${thS}">Net Receivable</th></tr>`;
+
+  exportRows.forEach((r, i) => {
+    const bg = i % 2 === 0 ? '#fff' : '#f0fdfa';
+    const nr = apColX ? (parseFloat(String(r[apColX]||0).replace(/,/g,''))||0) / 1.18 * 1.16 : 0;
+    html += `<tr>${qvCols.map(c => {
+      const raw = r[c] ?? '';
+      const cl  = c.trim().toLowerCase();
+      const isAmt = amtCols.has(cl);
+      const val = isAmt ? fmtAmt(raw) : raw;
+      const red = (cl === 'amount pending' && parseFloat(String(raw).replace(/,/g,'')) > 0) || (cl === 'outstanding days' && parseInt(raw) > 90);
+      return `<td style="${tdS(bg, isAmt || cl==='outstanding days', red)}">${val}</td>`;
+    }).join('')}<td style="${tdS(bg, true, false)}color:#1d4ed8;font-weight:700;">${nr.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`;
+  });
+
+  // Totals row
+  const nrGrandTotal = exportRows.reduce((s, r) => s + (apColX ? (parseFloat(String(r[apColX]||0).replace(/,/g,''))||0) / 1.18 * 1.16 : 0), 0);
+  const totals = qvCols.map(c => {
+    if (amtCols.has(c.trim().toLowerCase())) {
+      const s = exportRows.reduce((acc, r) => acc + (parseFloat(String(r[c]||0).replace(/,/g,''))||0), 0);
+      return `<td style="padding:8px 12px;border:1px solid #0f766e;background:#0d9488;color:#fff;font-weight:700;font-size:11px;text-align:right;">${s.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>`;
+    }
+    return `<td style="padding:8px 12px;border:1px solid #0f766e;background:#0d9488;color:#fff;font-weight:700;font-size:11px;">${c === qvCols[0] ? 'Grand Total' : ''}</td>`;
+  }).join('') + `<td style="padding:8px 12px;border:1px solid #0f766e;background:#0d9488;color:#93c5fd;font-weight:700;font-size:11px;text-align:right;">${nrGrandTotal.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>`;
+  html += `<tr>${totals}</tr></table></body></html>`;
+
+  const blob = new Blob([html], {type:'application/vnd.ms-excel'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${title.replace(/\s+/g,'_')}_QuickView_${date.replace(/\s/g,'-')}.xls`;
+  a.click();
+}
+
 function switchChartType(id, type, btn) {
   btn.closest('.chart-type-selector').querySelectorAll('.chart-type-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -2110,6 +2710,41 @@ function openCardModal(cardEl) {
   });
   document.getElementById('cardModal').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+// ── PAGE INDEX ───────────────────────────────────────────────────────────────
+function toggleIndexPanel() {
+  const list = document.getElementById('indexList');
+  const btn  = document.getElementById('indexToggleBtn');
+  const open = list.style.display === 'none';
+  list.style.display = open ? 'block' : 'none';
+  btn.style.background = open ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.15)';
+}
+
+function goToSection(tab, targetId) {
+  // Close the index panel after click
+  document.getElementById('indexList').style.display = 'none';
+  document.getElementById('indexToggleBtn').style.background = 'rgba(255,255,255,0.15)';
+
+  // Highlight active index item
+  document.querySelectorAll('.idx-item').forEach(el => {
+    el.classList.toggle('idx-active', el.getAttribute('onclick') === `goToSection('${tab}','${targetId}')`);
+  });
+
+  // Switch tab if needed
+  const tabBtns = document.querySelectorAll('.dash-tab-btn');
+  let needSwitch = false;
+  tabBtns.forEach(b => {
+    const isTarget = (tab === 'main' && b.textContent.includes('Dashboard')) ||
+                     (tab === 'summary' && b.textContent.includes('Summary'));
+    if (isTarget && !b.classList.contains('active')) { switchDashTab(tab, b); needSwitch = true; }
+  });
+
+  // Scroll after tab renders
+  setTimeout(() => {
+    const el = document.getElementById(targetId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, needSwitch ? 150 : 0);
 }
 
 function closeCardModal() {
@@ -2543,6 +3178,7 @@ function renderSummaryTab() {
   }
   buildDetailedPivot();
   buildTypeCards();
+  initCardDragDrop();
 }
 
 function buildTypeCards() {
@@ -2577,10 +3213,10 @@ function buildTypeCards() {
   const sortedTypes = Object.keys(allTypes).sort();
   const fmtV = v => v === 0 ? '—' : v.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
   const safeId = t => 'tc_' + t.replace(/[^a-zA-Z0-9]/g, '_');
-  const thS     = 'padding:7px 10px;color:#fff;border:1px solid #0f766e;text-align:left;white-space:nowrap;position:sticky;top:0;background:#0d9488;font-size:10px;font-family:Aptos,Arial,sans-serif;';
+  const thS     = 'padding:7px 10px;color:#fff;border:1px solid #0f766e;text-align:left;white-space:nowrap;position:sticky;top:0;background:#0d9488;font-size:12px;font-family:Aptos,Arial,sans-serif;';
   const thSFirst = thS + 'left:0;z-index:5;';
-  const tdL = 'padding:6px 10px;border:1px solid #e5e7eb;text-align:left;white-space:nowrap;font-size:10px;font-family:Aptos,Arial,sans-serif;';
-  const tdN = 'padding:6px 10px;border:1px solid #e5e7eb;text-align:left;white-space:nowrap;font-size:10px;font-family:Aptos,Arial,sans-serif;';
+  const tdL = 'padding:6px 10px;border:1px solid #e5e7eb;text-align:left;white-space:nowrap;font-size:12px;font-family:Aptos,Arial,sans-serif;';
+  const tdN = 'padding:6px 10px;border:1px solid #e5e7eb;text-align:left;white-space:nowrap;font-size:12px;font-family:Aptos,Arial,sans-serif;';
 
   let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(580px,1fr));gap:20px;margin-top:4px;">';
 
@@ -2610,17 +3246,18 @@ function buildTypeCards() {
     }).join('');
 
     const ftRow = `<tr style="background:#f0fdfa;border-top:2px solid #0d9488;font-weight:700;">
-      <td style="padding:6px 10px;border:1px solid #e5e7eb;font-size:10px;color:#0f766e;font-weight:700;" colspan="2">Grand Total</td>
-      <td style="padding:6px 10px;border:1px solid #e5e7eb;font-size:10px;color:#0f766e;font-weight:700;">${fmtV(gtTotal)}</td>
-      ${usedAging.map(b => `<td style="padding:6px 10px;border:1px solid #e5e7eb;font-size:10px;color:#0f766e;font-weight:700;">${fmtV(gtVals[b])}</td>`).join('')}
+      <td style="padding:6px 10px;border:1px solid #e5e7eb;font-size:12px;color:#0f766e;font-weight:700;" colspan="2">Grand Total</td>
+      <td style="padding:6px 10px;border:1px solid #e5e7eb;font-size:12px;color:#0f766e;font-weight:700;">${fmtV(gtTotal)}</td>
+      ${usedAging.map(b => `<td style="padding:6px 10px;border:1px solid #e5e7eb;font-size:12px;color:#0f766e;font-weight:700;">${fmtV(gtVals[b])}</td>`).join('')}
     </tr>`;
 
     html += `
     <div class="pivot-card">
       <div class="pivot-card-title" style="justify-content:space-between;flex-wrap:wrap;gap:6px;">
-        <div style="display:flex;align-items:center;gap:16px;">
+        <div style="display:flex;align-items:center;gap:8px;">
           <span style="color:#0f766e;">📂 ${type}</span>
           <button class="card-expand-btn" onclick="openCardModal(this.closest('.pivot-card'))">⤢ Expand</button>
+          ${(type === 'DEBBANK' || type === 'MEDIASALES_OS' || type === 'DEBFLIGHT') ? `<button onclick="downloadTypeData('${type}')" class="btn btn-outline btn-sm" style="color:#7c3aed;border-color:#7c3aed;" title="Download all raw Data Table rows for ${type}">↓ Data</button>` : ''}
         </div>
         <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
           <input type="search" placeholder="🔍 Filter..." oninput="filterTypeCard('${id}')"
@@ -2654,6 +3291,7 @@ function buildTypeCards() {
 
   html += '</div>';
   container.innerHTML = html;
+  initCardDragDrop();
 }
 
 function filterTypeCard(id) {
@@ -2762,7 +3400,7 @@ function buildDetailedPivot() {
       usedAging.forEach(b => { typeTotals[b] += vals[b]; grandTotals[b] += vals[b]; });
       const top3Style = ci < 3 ? 'color:#dc2626;font-weight:700;' : 'font-weight:600;';
       html += `<tr style="background:${bg};">
-        <td style="${tdLFirst}font-size:10px;color:#6b7280;background:${bg};">${ci === 0 ? `<strong style="color:#0d9488;">${type}</strong>` : ''}</td>
+        <td style="${tdLFirst}font-size:12px;color:#6b7280;background:${bg};">${ci === 0 ? `<strong style="color:#0d9488;">${type}</strong>` : ''}</td>
         <td style="${tdL}${top3Style}">${ci < 3 ? '🔴 ' : ''}${cust}</td>
         <td style="${tdL}">${sp}</td>
         <td style="${tdS}font-weight:700;">${fmtV(rowTotal)}</td>
@@ -2772,7 +3410,7 @@ function buildDetailedPivot() {
 
     // Type subtotal row
     const typeTotal = usedAging.reduce((s, b) => s + typeTotals[b], 0);
-    const stBase = 'padding:7px 10px;border:1px solid #99f6e4;text-align:left;white-space:nowrap;font-size:10px;font-family:Aptos,Arial,sans-serif;font-weight:700;color:#0f766e;letter-spacing:0.03em;';
+    const stBase = 'padding:7px 10px;border:1px solid #99f6e4;text-align:left;white-space:nowrap;font-size:12px;font-family:Aptos,Arial,sans-serif;font-weight:700;color:#0f766e;letter-spacing:0.03em;';
     html += `<tr style="background:linear-gradient(90deg,#ccfbf1 0%,#f0fdfa 100%);border-top:2px solid #0d9488;border-bottom:2px solid #0d9488;">
       <td style="${stBase}border-left:4px solid #0d9488;text-transform:uppercase;" colspan="2">⟩ Total — ${type}</td>
       <td style="${stBase}"></td>
@@ -2834,7 +3472,7 @@ function renderTable() {
         const sum = filteredData.reduce((s, r) => s + (parseFloat(r[h]) || 0), 0);
         display = parseFloat(sum).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
       }
-      return `<td style="padding:6px 10px;white-space:nowrap;font-size:10px;border:1px solid #e5e7eb;color:#0f766e;font-weight:700;">${display}</td>`;
+      return `<td style="padding:6px 10px;white-space:nowrap;font-size:12px;border:1px solid #e5e7eb;color:#0f766e;font-weight:700;">${display}</td>`;
     }).join('') + '</tr>';
 
   body.innerHTML += gtRow;
@@ -3073,6 +3711,404 @@ function downloadExcel() {
   a.href = url; a.download = 'AR Ageing Report.xls'; a.click();
   URL.revokeObjectURL(url);
 }
+
+// ── CARD DRAG & DROP ───────────────────────────────────────────────────
+function initCardDragDrop() {
+  const tab = document.getElementById('tab-summary');
+  if (!tab) return;
+
+  // Inject drag handle into every pivot-card-title (idempotent)
+  tab.querySelectorAll('.pivot-card').forEach(card => {
+    card.setAttribute('draggable', 'true');
+    const titleEl = card.querySelector('.pivot-card-title');
+    if (titleEl && !titleEl.querySelector('.drag-handle')) {
+      const handle = document.createElement('span');
+      handle.className = 'drag-handle';
+      handle.textContent = '⠿';
+      handle.title = 'Drag to reorder';
+      titleEl.append(handle);
+    }
+  });
+
+  // Register listeners once per tab element
+  if (tab._dndReady) return;
+  tab._dndReady = true;
+
+  let dragSrc = null;
+
+  const clearIndicators = () =>
+    tab.querySelectorAll('.pivot-card').forEach(c =>
+      c.classList.remove('dnd-over-top','dnd-over-bottom','dnd-over-left','dnd-over-right'));
+
+  tab.addEventListener('dragstart', e => {
+    const card = e.target.closest('.pivot-card');
+    if (!card) return;
+    dragSrc = card;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+    setTimeout(() => card.classList.add('dnd-dragging'), 0);
+  });
+
+  tab.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const card = e.target.closest('.pivot-card');
+    if (!card || card === dragSrc) return;
+    clearIndicators();
+
+    const rect   = card.getBoundingClientRect();
+    const parent = card.parentElement;
+    const cols   = window.getComputedStyle(parent).gridTemplateColumns.split(' ').filter(Boolean).length;
+    if (cols > 1) {
+      card.classList.add(e.clientX < rect.left + rect.width / 2 ? 'dnd-over-left' : 'dnd-over-right');
+    } else {
+      card.classList.add(e.clientY < rect.top + rect.height / 2 ? 'dnd-over-top' : 'dnd-over-bottom');
+    }
+  });
+
+  tab.addEventListener('dragleave', e => {
+    const card = e.target.closest('.pivot-card');
+    if (card && !card.contains(e.relatedTarget))
+      card.classList.remove('dnd-over-top','dnd-over-bottom','dnd-over-left','dnd-over-right');
+  });
+
+  tab.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.pivot-card');
+    if (!target || target === dragSrc) return;
+
+    const rect   = target.getBoundingClientRect();
+    const parent = target.parentElement;
+    const cols   = window.getComputedStyle(parent).gridTemplateColumns.split(' ').filter(Boolean).length;
+    const before = cols > 1
+      ? e.clientX < rect.left + rect.width / 2
+      : e.clientY < rect.top  + rect.height / 2;
+
+    parent.insertBefore(dragSrc, before ? target : target.nextSibling);
+    clearIndicators();
+  });
+
+  tab.addEventListener('dragend', () => {
+    if (dragSrc) dragSrc.classList.remove('dnd-dragging');
+    dragSrc = null;
+    clearIndicators();
+  });
+}
+
+// ── TYPE RAW DATA DOWNLOAD ─────────────────────────────────────────────
+function downloadTypeData(type) {
+  if (!rawData.length) return;
+  const date     = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const typeCol  = headers.find(h => h.trim().toLowerCase() === 'type');
+  const custCol  = headers.find(h => /customer.?name|customer|client/i.test(h.trim()));
+  const spCol    = headers.find(h => h.trim().toLowerCase() === 'sales person');
+  const mergeMap = {'DEBMETA':'Meta_OS','DEBMETA_INT':'Meta_OS','DEBMEDIASALES':'MEDIASALES_OS','DEBMEDIASALES_INT':'MEDIASALES_OS'};
+  const rType    = t => mergeMap[t] ?? t;
+
+  const filtered = rawData.filter(r => rType(String(r[typeCol]??'').trim()) === type);
+  if (!filtered.length) { alert(`No data found for ${type}`); return; }
+
+  const base  = 'border:1px solid #ccc;padding:6px 10px;white-space:nowrap;font-family:Aptos,Arial,sans-serif;font-size:10pt;';
+  const S_HDR = base+'background:#0d9488;color:#ffffff;font-weight:bold;';
+  const S_SUB = base+'background:#ccfbf1;color:#0f766e;font-weight:bold;border-top:2px solid #0d9488;border-bottom:2px solid #0d9488;';
+  const S_E   = base+'background:#ffffff;';
+  const S_O   = base+'background:#f0f4ff;';
+  const S_EB  = S_E+'font-weight:bold;';
+  const S_OB  = S_O+'font-weight:bold;';
+  const S_ER  = S_E+'color:#dc2626;font-weight:bold;';
+  const S_OR  = S_O+'color:#dc2626;font-weight:bold;';
+  const fmtN  = v => v===0?'':v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const TH    = (v,s,cs) => `<th${cs>1?` colspan="${cs}"`:''} style="${s}">${v}</th>`;
+  const TD    = (v,s)    => `<td style="${s}">${v}</td>`;
+
+  // ── 1. Summary table (same as card display) ───────────────────────────
+  const usedAging = agingBuckets.filter(b => headers.includes(b));
+  // Group by customer+salesperson
+  const custMap = {};
+  filtered.forEach(r => {
+    const cust = String(r[custCol]??'').trim() || '(blank)';
+    const sp   = spCol ? (String(r[spCol]??'').trim() || '—') : '—';
+    const key  = `${cust}||${sp}`;
+    if (!custMap[key]) custMap[key] = {cust, sp, vals: Object.fromEntries(usedAging.map(b=>[b,0]))};
+    usedAging.forEach(b => { custMap[key].vals[b] += parseFloat(r[b])||0; });
+  });
+  // Active buckets (non-zero across any customer)
+  const AB = usedAging.filter(b => Object.values(custMap).some(({vals}) => vals[b] !== 0));
+  // Sort by total desc
+  const custKeys = Object.keys(custMap).sort((a,z) =>
+    AB.reduce((s,b) => s + custMap[z].vals[b], 0) - AB.reduce((s,b) => s + custMap[a].vals[b], 0));
+
+  let sumRows = `<tr>${[TH('Customer Name',S_HDR),TH('Sales Person',S_HDR),TH('Grand Total',S_HDR),...AB.map(b=>TH(b,S_HDR))].join('')}</tr>`;
+  const gTot = Object.fromEntries(AB.map(b=>[b,0]));
+  let gTotal = 0, rIdx = 0;
+  custKeys.forEach(ck => {
+    const {cust, sp, vals} = custMap[ck];
+    const rowTotal = AB.reduce((s,b) => s+vals[b], 0);
+    if (rowTotal === 0) return;
+    AB.forEach(b => { gTot[b] += vals[b]; }); gTotal += rowTotal;
+    const odd = rIdx%2!==0, top3 = rIdx<3; rIdx++;
+    sumRows += `<tr>${[
+      TD(cust, top3?(odd?S_OR:S_ER):(odd?S_O:S_E)),
+      TD(sp,   odd?S_O:S_E),
+      TD(fmtN(rowTotal), odd?S_OB:S_EB),
+      ...AB.map(b => TD(fmtN(vals[b]), odStyle(b,vals[b])!==''?(odd?S_OR:S_ER):(odd?S_O:S_E)))
+    ].join('')}</tr>`;
+  });
+  sumRows += `<tr>${[TH('Grand Total',S_HDR,2),TH(fmtN(gTotal),S_HDR),...AB.map(b=>TH(fmtN(gTot[b]),S_HDR))].join('')}</tr>`;
+  const summaryTable = `<table border="1" style="border-collapse:collapse;">${sumRows}</table>`;
+
+  // ── 2. Raw data table ─────────────────────────────────────────────────
+  const activeCols = headers.filter(h => filtered.some(r => String(r[h]??'').trim() !== ''));
+  const startI   = activeCols.findIndex(h => h.trim().toLowerCase() === 'document amount');
+  const endI     = activeCols.findIndex(h => h.trim().toLowerCase() === 'validation');
+  const sumRange = startI !== -1 ? new Set(activeCols.slice(startI, endI !== -1 ? endI+1 : undefined)) : new Set();
+  const skipSum  = new Set(['outstanding days','due date']);
+
+  let rawRows = `<tr>${activeCols.map(h=>`<th style="${S_HDR}">${h}</th>`).join('')}</tr>`;
+  filtered.forEach((row, i) => {
+    const odd = i%2!==0;
+    rawRows += `<tr>${activeCols.map(h => {
+      const v = row[h]??'';
+      return `<td style="${odStyle(h,v)!==''?(odd?S_OR:S_ER):(odd?S_O:S_E)}">${v}</td>`;
+    }).join('')}</tr>`;
+  });
+  rawRows += `<tr>${activeCols.map((h,i) => {
+    if (i===0) return `<th style="${S_HDR}">Grand Total</th>`;
+    if (sumRange.has(h) && !skipSum.has(h.trim().toLowerCase()))
+      return `<th style="${S_HDR}">${fmtN(filtered.reduce((s,r)=>s+(parseFloat(r[h])||0),0))}</th>`;
+    return `<th style="${S_HDR}"></th>`;
+  }).join('')}</tr>`;
+  const rawTable = `<table border="1" style="border-collapse:collapse;">${rawRows}</table>`;
+
+  // ── 3. Assemble as MHTML — Sheet 1: Summary, Sheet 2: Raw Data ───────
+  const SFRZ = `<!--[if gte mso 9]><xml><x:WorksheetOptions><x:FreezePanes/><x:FrozenNoSplit/><x:SplitHorizontal>1</x:SplitHorizontal><x:TopRowBottomPane>1</x:TopRowBottomPane><x:SplitVertical>1</x:SplitVertical><x:LeftColumnRightPane>1</x:LeftColumnRightPane><x:ActivePane>0</x:ActivePane></x:WorksheetOptions></xml><![endif]-->`;
+  const sheets = [
+    {name:`${type} Summary`, tbl:`<table border="1" style="border-collapse:collapse;">${sumRows}</table>`},
+    {name:`${type} Raw Data`, tbl:`<table border="1" style="border-collapse:collapse;">${rawRows}</table>`},
+  ];
+  const boundary = '----=_NextPart_TypeData';
+  const href = s => `sheet_${s.name.replace(/\s+/g,'_')}.htm`;
+  const wbPart = [
+    `--${boundary}`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Location: workbook.htm`,
+    ``,
+    `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`,
+    `<head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>`,
+    sheets.map(s=>`<x:ExcelWorksheet><x:Name>${s.name}</x:Name><x:WorksheetSource HRef="${href(s)}"/></x:ExcelWorksheet>`).join(''),
+    `</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body></body></html>`
+  ].join('\r\n');
+  const sheetPart = s => [
+    `--${boundary}`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Location: ${href(s)}`,
+    ``,
+    `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`,
+    `<head>${SFRZ}</head><body>${s.tbl}</body></html>`
+  ].join('\r\n');
+  const mhtml = [
+    `MIME-Version: 1.0`,
+    `X-Document-Type: Workbook`,
+    `Content-Type: multipart/related; boundary="${boundary}"`,
+    ``,
+    wbPart,
+    ...sheets.map(s => `\r\n${sheetPart(s)}`),
+    `\r\n--${boundary}--`
+  ].join('\r\n');
+
+  const blob = new Blob([mhtml], {type:'application/vnd.ms-excel'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${type}_Data_${date.replace(/\s/g,'-')}.xls`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+}
+
+// ── COMPILED REPORT ────────────────────────────────────────────────────
+function downloadCompiledReport() {
+  if (!rawData.length) return;
+  const date = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+  // Style constants
+  const base = 'border:1px solid #ccc;padding:6px 10px;white-space:nowrap;font-family:Aptos,Arial,sans-serif;font-size:10pt;';
+  const S_HDR = base+'background:#0d9488;color:#ffffff;font-weight:bold;';
+  const S_SUB = base+'background:#ccfbf1;color:#0f766e;font-weight:bold;border-top:2px solid #0d9488;border-bottom:2px solid #0d9488;';
+  const S_E=base+'background:#ffffff;', S_O=base+'background:#f0f4ff;';
+  const S_EB=S_E+'font-weight:bold;', S_OB=S_O+'font-weight:bold;';
+  const S_ER=S_E+'color:#dc2626;font-weight:bold;', S_OR=S_O+'color:#dc2626;font-weight:bold;';
+  const S_GY=S_E+'color:#6b7280;', S_GYO=S_O+'color:#6b7280;', S_TN=S_E+'color:#0d9488;font-weight:bold;';
+
+  const fmtN = v => v===0?'':v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const TH=(v,s,cs)=>`<th${cs>1?` colspan="${cs}"`:''} style="${s}">${v}</th>`;
+  const TD=(v,s,cs)=>`<td${cs>1?` colspan="${cs}"`:''} style="${s}">${v}</td>`;
+  const TR=cells=>`<tr>${cells.join('')}</tr>`;
+  const TABLE=rows=>`<table border="1" style="border-collapse:collapse;">${rows.join('')}</table>`;
+  const FRZ=`<x:WorksheetOptions><x:FreezePanes/><x:FrozenNoSplit/><x:SplitHorizontal>1</x:SplitHorizontal><x:TopRowBottomPane>1</x:TopRowBottomPane><x:SplitVertical>1</x:SplitVertical><x:LeftColumnRightPane>1</x:LeftColumnRightPane><x:ActivePane>0</x:ActivePane></x:WorksheetOptions>`;
+
+  // Shared data setup
+  const typeCol   = headers.find(h => h.trim().toLowerCase() === 'type');
+  const custCol   = headers.find(h => /customer.?name|customer|client/i.test(h.trim()));
+  const spCol     = headers.find(h => h.trim().toLowerCase() === 'sales person');
+  const usedAging = agingBuckets.filter(b => headers.includes(b));
+  const mergeMap  = {'DEBMETA':'Meta_OS','DEBMETA_INT':'Meta_OS','DEBMEDIASALES':'MEDIASALES_OS','DEBMEDIASALES_INT':'MEDIASALES_OS'};
+  const rType     = t => mergeMap[t] ?? t;
+
+  const allTypes = {};
+  rawData.forEach(r => {
+    const type = rType(String(r[typeCol]??'').trim());
+    const cust = String(r[custCol]??'').trim() || '(blank)';
+    const sp   = spCol ? (String(r[spCol]??'').trim() || '—') : '—';
+    if (!allTypes[type]) allTypes[type] = {};
+    const key = `${cust}||${sp}`;
+    if (!allTypes[type][key]) allTypes[type][key] = {cust, sp, vals: Object.fromEntries(usedAging.map(b=>[b,0]))};
+    usedAging.forEach(b => { allTypes[type][key].vals[b] += parseFloat(r[b])||0; });
+  });
+
+  const activeBuckets = td => usedAging.filter(b => Object.values(td).some(({vals}) => vals[b] !== 0));
+
+  // Sheet 1: Data Table
+  const dtTable = (() => {
+    const activeCols = headers.filter(h => rawData.some(r => String(r[h]??'').trim() !== ''));
+    const startI = activeCols.findIndex(h => h.trim().toLowerCase() === 'document amount');
+    const endI   = activeCols.findIndex(h => h.trim().toLowerCase() === 'validation');
+    const sumRange = startI !== -1 ? new Set(activeCols.slice(startI, endI !== -1 ? endI+1 : undefined)) : new Set();
+    const skipSum  = new Set(['outstanding days','due date']);
+    const rows = [TR(activeCols.map(h => TH(h, S_HDR)))];
+    rawData.forEach((row, i) => {
+      const odd = i%2!==0;
+      rows.push(TR(activeCols.map(h => {
+        const v = row[h]??'';
+        return TD(v, odStyle(h,v)!==''?(odd?S_OR:S_ER):(odd?S_O:S_E));
+      })));
+    });
+    rows.push(TR(activeCols.map((h,i) => {
+      if (i===0) return TH('Grand Total', S_HDR);
+      if (sumRange.has(h) && !skipSum.has(h.trim().toLowerCase()))
+        return TH(fmtN(rawData.reduce((s,r)=>s+(parseFloat(r[h])||0),0)), S_HDR);
+      return TH('', S_HDR);
+    })));
+    return TABLE(rows);
+  })();
+
+  // Sheet 2: Detailed Pivot
+  const dpTable = (() => {
+    const merged = Object.values(allTypes).reduce((acc,td)=>Object.assign(acc,td),{});
+    const AB = activeBuckets(merged);
+    const rows = [TR([TH('Type',S_HDR),TH('Customer Name',S_HDR),TH('Sales Person',S_HDR),TH('Grand Total',S_HDR),...AB.map(b=>TH(b,S_HDR))])];
+    const gTot = Object.fromEntries(AB.map(b=>[b,0]));
+    let gTotal=0;
+
+    Object.keys(allTypes).sort().forEach(type => {
+      const td = allTypes[type];
+      const custKeys = Object.keys(td).sort((a,b)=>
+        AB.reduce((s,bk)=>s+td[b].vals[bk],0)-AB.reduce((s,bk)=>s+td[a].vals[bk],0));
+      const tTot = Object.fromEntries(AB.map(b=>[b,0]));
+      let tTotal=0, rIdx=0;
+      custKeys.forEach(ck => {
+        const {cust,sp,vals} = td[ck];
+        const rowTotal = AB.reduce((s,b)=>s+vals[b],0);
+        if (rowTotal===0) return;
+        AB.forEach(b=>{tTot[b]+=vals[b];gTot[b]+=vals[b];}); tTotal+=rowTotal; gTotal+=rowTotal;
+        const odd=rIdx%2!==0, top3=rIdx<3; rIdx++;
+        rows.push(TR([
+          TD(rIdx===1?type:'', rIdx===1?S_TN:(odd?S_GYO:S_GY)),
+          TD(cust, top3?(odd?S_OR:S_ER):(odd?S_O:S_E)),
+          TD(sp, odd?S_O:S_E),
+          TD(fmtN(rowTotal), odd?S_OB:S_EB),
+          ...AB.map(b=>TD(fmtN(vals[b]), odStyle(b,vals[b])!==''?(odd?S_OR:S_ER):(odd?S_O:S_E)))
+        ]));
+      });
+      if (tTotal===0) return;
+      rows.push(TR([TH(`Total — ${type}`,S_SUB,3),TH(fmtN(tTotal),S_SUB),...AB.map(b=>TH(fmtN(tTot[b]),S_SUB))]));
+    });
+    rows.push(TR([TH('Grand Total',S_HDR,3),TH(fmtN(gTotal),S_HDR),...AB.map(b=>TH(fmtN(gTot[b]),S_HDR))]));
+    return TABLE(rows);
+  })();
+
+  // Type sheet builder
+  function typeTable(typeName) {
+    const td = allTypes[typeName];
+    if (!td) return TABLE([TR([TD(`No data for ${typeName}`, S_E)])]);
+    const AB = activeBuckets(td);
+    const custKeys = Object.keys(td).sort((a,b)=>
+      AB.reduce((s,bk)=>s+td[b].vals[bk],0)-AB.reduce((s,bk)=>s+td[a].vals[bk],0));
+    const rows = [TR([TH('Customer Name',S_HDR),TH('Sales Person',S_HDR),TH('Grand Total',S_HDR),...AB.map(b=>TH(b,S_HDR))])];
+    const gTot = Object.fromEntries(AB.map(b=>[b,0]));
+    let gTotal=0, rIdx=0;
+    custKeys.forEach(ck => {
+      const {cust,sp,vals} = td[ck];
+      const rowTotal = AB.reduce((s,b)=>s+vals[b],0);
+      if (rowTotal===0) return;
+      AB.forEach(b=>{gTot[b]+=vals[b];}); gTotal+=rowTotal;
+      const odd=rIdx%2!==0, top3=rIdx<3; rIdx++;
+      rows.push(TR([
+        TD(cust, top3?(odd?S_OR:S_ER):(odd?S_O:S_E)),
+        TD(sp, odd?S_O:S_E),
+        TD(fmtN(rowTotal), odd?S_OB:S_EB),
+        ...AB.map(b=>TD(fmtN(vals[b]), odStyle(b,vals[b])!==''?(odd?S_OR:S_ER):(odd?S_O:S_E)))
+      ]));
+    });
+    rows.push(TR([TH('Grand Total',S_HDR,2),TH(fmtN(gTotal),S_HDR),...AB.map(b=>TH(fmtN(gTot[b]),S_HDR))]));
+    return TABLE(rows);
+  }
+
+  const sheets = [
+    {name:'Data Table',     tbl:dtTable},
+    {name:'Detailed Pivot', tbl:dpTable},
+    {name:'DEBBANK',        tbl:typeTable('DEBBANK')},
+    {name:'DEBFLIGHT',      tbl:typeTable('DEBFLIGHT')},
+    {name:'MEDIASALES OS',  tbl:typeTable('MEDIASALES_OS')},
+  ];
+
+  // MHTML format — workbook index part + one part per sheet
+  const boundary = '----=_NextPart_CompileReport';
+  const href = s => `sheet_${s.name.replace(/\s+/g,'_')}.htm`;
+  const SHEET_FRZ = `<!--[if gte mso 9]><xml><x:WorksheetOptions><x:FreezePanes/><x:FrozenNoSplit/><x:SplitHorizontal>1</x:SplitHorizontal><x:TopRowBottomPane>1</x:TopRowBottomPane><x:SplitVertical>1</x:SplitVertical><x:LeftColumnRightPane>1</x:LeftColumnRightPane><x:ActivePane>0</x:ActivePane></x:WorksheetOptions></xml><![endif]-->`;
+
+  // Part 0: workbook index (declares all sheets with HRef links)
+  const wbPart = [
+    `--${boundary}`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Location: workbook.htm`,
+    ``,
+    `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`,
+    `<head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>`,
+    sheets.map(s=>`<x:ExcelWorksheet><x:Name>${s.name}</x:Name><x:WorksheetSource HRef="${href(s)}"/></x:ExcelWorksheet>`).join(''),
+    `</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>`,
+    `<body></body></html>`
+  ].join('\r\n');
+
+  // Parts 1–N: individual sheet data — freeze panes declared in each sheet's own head
+  const sheetPart = s => [
+    `--${boundary}`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Location: ${href(s)}`,
+    ``,
+    `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`,
+    `<head>${SHEET_FRZ}</head><body>${s.tbl}</body></html>`
+  ].join('\r\n');
+
+  const mhtml = [
+    `MIME-Version: 1.0`,
+    `X-Document-Type: Workbook`,
+    `Content-Type: multipart/related; boundary="${boundary}"`,
+    ``,
+    wbPart,
+    ...sheets.map(s => `\r\n${sheetPart(s)}`),
+    `\r\n--${boundary}--`
+  ].join('\r\n');
+
+  const blob = new Blob([mhtml], {type:'application/vnd.ms-excel'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Compile_${date.replace(/\s/g,'-')}.xls`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+}
+
+
+
+
 
 // ── STATUS ─────────────────────────────────────────────────────────────
 function updateStatus() {
